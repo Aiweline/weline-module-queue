@@ -9,15 +9,11 @@
 
 #### 安装教程
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+composer require weline/module-queue
 
 #### 使用说明
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+安装后支持主动消费队列异步批量执行。也支持被动消费队列。
 
 #### 参与贡献
 
