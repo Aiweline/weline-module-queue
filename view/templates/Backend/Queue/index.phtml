@@ -101,10 +101,10 @@ $themeConfig = \Weline\Framework\Manager\ObjectManager::getInstance(\Weline\Back
                                                 <th data-priority='3'><?= __('进程ID') ?></th>
                                                 <th data-priority='3'><?= __('类型') ?></th>
                                                 <th data-priority='1'><?= __('名称') ?></th>
-                                                <th data-priority='1'><?= __('开始于') ?></th>
-                                                <th data-priority='1'><?= __('结束于') ?></th>
                                                 <th data-priority='1'><?= __('结果') ?></th>
                                                 <th data-priority='1'><?= __('内容') ?></th>
+                                                <th data-priority='1'><?= __('开始于') ?></th>
+                                                <th data-priority='1'><?= __('结束于') ?></th>
                                                 <th data-priority='1'><?= __('自动消费') ?></th>
                                                 <th data-priority='1'><?= __('状态') ?></th>
                                                 <th data-priority='1'><?= __('是否完成') ?></th>
@@ -120,10 +120,60 @@ $themeConfig = \Weline\Framework\Manager\ObjectManager::getInstance(\Weline\Back
                                                     <td>{{queue.pid}}</td>
                                                     <td>{{queue.t_name}}</td>
                                                     <td class='co-name'>{{queue.name}}</td>
+                                                    <td class='co-name'>
+                                                        <php>
+                                                            $lenght = strlen($queue['result']??'');
+                                                            $show_more =( $lenght>20);
+                                                        </php>
+                                                        <if condition="$show_more">
+                                                            <string>queue.result|20</string>
+                                                            <block class='Weline\Component\Block\OffCanvas'
+                                                                   template='Weline_Component::off-canvas.phtml'
+                                                                   cache='0'
+                                                                   id='off_canvas_queue_result'
+                                                                   action='*/backend/queue/detail-result'
+                                                                   vars='queue'
+                                                                   action-params='{id:queue.queue_id}'
+                                                                   title='查看队列结果'
+                                                                   close-button-show='1'
+                                                                   close-button-text='关闭'
+                                                                   direction='top'
+                                                                   class-names='w-100 h-75'
+                                                                   off-canvas-body-style=''
+                                                                   target-button-text='查看全部'
+                                                            />
+                                                            <else/>
+                                                            {{queue.result}}
+                                                        </if>
+                                                    </td>
+                                                    <td class='co-name'>
+                                                        <php>
+                                                            $lenght = strlen($queue['content']??'');
+                                                            $show_more =( $lenght>20);
+                                                        </php>
+                                                        <if condition="$show_more">
+                                                            <string>queue.content|20</string>
+                                                            <block class='Weline\Component\Block\OffCanvas'
+                                                                   template='Weline_Component::off-canvas.phtml'
+                                                                   cache='0'
+                                                                   id='off_canvas_queue_content'
+                                                                   action='*/backend/queue/detail-content'
+                                                                   vars='queue'
+                                                                   action-params='{id:queue.queue_id}'
+                                                                   title='查看队列消息内容'
+                                                                   close-button-show='1'
+                                                                   close-button-text='关闭'
+                                                                   direction='top'
+                                                                   class-names='w-100 h-75'
+                                                                   off-canvas-body-style=''
+                                                                   target-button-text='查看全部'
+                                                            />
+                                                            <else/>
+                                                            {{queue.content}}
+                                                        </if>
+                                                    </td>
                                                     <td class='co-name'>{{queue.start_at}}</td>
                                                     <td class='co-name'>{{queue.end_at}}</td>
-                                                    <td class='co-name'>{{queue.result}}</td>
-                                                    <td class='co-name' style="max-width:120px;overflow: scroll">{{queue.content}}</td>
                                                     <td class='co-name'>{{queue.auto}}</td>
                                                     <td class='co-name'>{{queue.status}}</td>
                                                     <td class='co-name'>{{queue.finished}}</td>
@@ -131,11 +181,7 @@ $themeConfig = \Weline\Framework\Manager\ObjectManager::getInstance(\Weline\Back
                                                     <td class='co-name'>{{queue.update_time}}</td>
                                                     <td class='co-name'>
                                                         <div class="d-flex gap-2">
-                                                            <a class='btn btn-info' href="@backend-url('*/backend/queue/edit')?code={{queue
-                                                                .queue_id}}">
-                                                                <lang>修改</lang>
-                                                            </a>
-                                                            <a class='btn btn-danger' href="@backend-url('*/backend/queue/delete')?code={{queue
+                                                            <a class='btn btn-danger' href="@backend-url('*/backend/queue/delete')?id={{queue
                                                                 .queue_id}}">
                                                                 <lang>删除</lang>
                                                             </a>
