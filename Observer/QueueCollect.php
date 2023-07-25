@@ -43,6 +43,10 @@ class QueueCollect implements \Weline\Framework\Event\ObserverInterface
             $queue_files      = $this->reader->readClass(new Module($module), 'Queue');
             foreach ($queue_files as $queue_class) {
                 try {
+                    $queue_ref = ObjectManager::getReflectionInstance($queue_class);
+                    if(!$queue_ref->isInstantiable()){
+                        continue;
+                    }
                     /**@var QueueInterface $queue */
                     $queue = ObjectManager::getInstance($queue_class);
                 } catch (\Exception $e) {
