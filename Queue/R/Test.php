@@ -23,6 +23,11 @@ class Test implements QueueInterface
         return 'r-test测试';
     }
 
+    public function tip(): string
+    {
+        return __('测试队列提示');
+    }
+
     public function execute(Queue $queue): string
     {
         return 'r-test运行成功';
@@ -31,5 +36,19 @@ class Test implements QueueInterface
     public function fields(): array
     {
         return [];
+    }
+
+    public function validate(Queue $queue): bool
+    {
+        $content = $queue->getContent();
+        if ($content) {
+            $queue->setResult('验证队列消息内容通过');
+            $queue->save();
+            return true;
+        }
+        $queue->setResult('验证队列消息内容失败');
+        $queue->setFinished(true);
+        $queue->save();
+        return false;
     }
 }

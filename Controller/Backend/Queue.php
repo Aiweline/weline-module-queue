@@ -29,8 +29,9 @@ class Queue extends \Weline\Framework\App\Controller\BackendController
         $this->assign('title', __('消息队列'));
         $this->queue->joinModel(\Weline\Queue\Model\Queue\Type::class, 't', 'main_table.type_id=t.type_id', 'left');
         if ($search = $this->request->getGet('q')) {
-            $this->queue->where("concat(main_table.name,main_table.content,main_table.result)", "%$search%", 'LIKE');
+            $this->queue->where("concat(main_table.name,main_table.content,main_table.result) like '%$search%'");
         }
+        p($this->queue->select()->getLastSql());
         $this->queue->pagination()->select()->fetch();
         $this->assign('queues', $this->queue->getItems());
         $this->assign('pagination', $this->queue->getPagination());

@@ -73,7 +73,7 @@ QUEUETIP;
             $start_time = time();
             sleep(1);
             if ($total % 5 == 0) {
-                $pageSize = 100;
+                $pageSize = 10;
                 $this->queue->pagination();
                 $pages = $this->queue->pagination['lastPage'];
                 foreach (range(1, $pages) as $page) {
@@ -88,6 +88,20 @@ QUEUETIP;
                                              ->getItems();
                     /**@var \Weline\Queue\Model\Queue $queue */
                     foreach ($queues as $key => $queue) {
+                        # 检测程序是否还在运行
+                        if ($pid = $pullTask->getData($pullTask::fields_PID)) {
+                            if (IS_WIN) {
+                                exec('TASKLIST /NH /FO "CSV" /FI "PID eq ' . $pid . '"', $outputA);
+                                $outputB = explode('","', $outputA[0]);
+                                $running = isset($outputB[1]);
+                            } else {
+                                $running = posix_kill($pid, 0);
+                            }
+                            if ($running) {
+                                $queue->setResult("$pid 进程正在运行...")->save();
+                                continue;
+                            }
+                        }
                         $queue->setResult('');
                         $descriptorspec = array(
                             0 => array('pipe', 'r'),   // 子进程将从此管道读取stdin

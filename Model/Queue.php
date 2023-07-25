@@ -21,23 +21,23 @@ use Weline\Queue\Model\Queue\Type;
 
 class Queue extends \Weline\Framework\Database\Model
 {
-    public const fields_ID       = 'queue_id';
-    public const fields_type_id  = 'type_id';
-    public const fields_pid      = 'pid';
-    public const fields_name     = 'name';
+    public const fields_ID = 'queue_id';
+    public const fields_type_id = 'type_id';
+    public const fields_pid = 'pid';
+    public const fields_name = 'name';
     public const fields_start_at = 'start_at';
-    public const fields_end_at   = 'end_at';
-    public const fields_result   = 'result';
-    public const fields_content  = 'content';
-    public const fields_status   = 'status';
+    public const fields_end_at = 'end_at';
+    public const fields_result = 'result';
+    public const fields_content = 'content';
+    public const fields_status = 'status';
     public const fields_finished = 'finished';
-    public const fields_auto     = 'auto';
+    public const fields_auto = 'auto';
 
     /*状态*/
     public const status_pending = 'pending';
     public const status_running = 'running';
-    public const status_done    = 'done';
-    public const status_error   = 'error';
+    public const status_done = 'done';
+    public const status_error = 'error';
 
 
     public function setup(ModelSetup $setup, Context $context): void
@@ -52,23 +52,23 @@ class Queue extends \Weline\Framework\Database\Model
 
     public function install(ModelSetup $setup, Context $context): void
     {
-        //        $setup->dropTable();
+//                $setup->dropTable();
         if (!$setup->tableExist()) {
             $setup->createTable('任务队列')
-                  ->addColumn(self::fields_ID, TableInterface::column_type_INTEGER, 0, 'primary key auto_increment', 'ID')
-                  ->addColumn(self::fields_pid, TableInterface::column_type_INTEGER, 0, 'default 0', '进程ID')
-                  ->addColumn(self::fields_type_id, TableInterface::column_type_INTEGER, 0, 'not null', '任务类别')
-                  ->addColumn(self::fields_name, TableInterface::column_type_VARCHAR, 255, 'not null', '任务名称')
-                  ->addColumn(self::fields_start_at, TableInterface::column_type_TIMESTAMP, null, '', '开始时间')
-                  ->addColumn(self::fields_end_at, TableInterface::column_type_TIMESTAMP, null, '', '结束时间')
-                  ->addColumn(self::fields_result, TableInterface::column_type_TEXT, null, "default ''", '结果')
-                  ->addColumn(self::fields_content, TableInterface::column_type_TEXT, null, "default ''", '内容')
-                  ->addColumn(self::fields_status, TableInterface::column_type_VARCHAR, 12, "default 'pending'", '状态')
-                  ->addColumn(self::fields_finished, TableInterface::column_type_SMALLINT, 1, 'default 0', '是否完成')
-                  ->addColumn(self::fields_auto, TableInterface::column_type_SMALLINT, 1, 'default 1', '是否自动')
-                  ->addIndex(TableInterface::index_type_KEY, 'type_id', self::fields_type_id, '类型索引')
-                  ->addIndex(TableInterface::index_type_KEY, self::fields_finished, self::fields_finished, '是否完成索引')
-                  ->create();
+                ->addColumn(self::fields_ID, TableInterface::column_type_INTEGER, 0, 'primary key auto_increment', 'ID')
+                ->addColumn(self::fields_pid, TableInterface::column_type_INTEGER, 0, 'default 0', '进程ID')
+                ->addColumn(self::fields_type_id, TableInterface::column_type_INTEGER, 0, 'not null', '任务类别')
+                ->addColumn(self::fields_name, TableInterface::column_type_VARCHAR, 255, 'not null', '任务名称')
+                ->addColumn(self::fields_start_at, TableInterface::column_type_TIMESTAMP, null, '', '开始时间')
+                ->addColumn(self::fields_end_at, TableInterface::column_type_TIMESTAMP, null, '', '结束时间')
+                ->addColumn(self::fields_result, TableInterface::column_type_TEXT, null, "", '结果')
+                ->addColumn(self::fields_content, TableInterface::column_type_TEXT, null, "", '内容')
+                ->addColumn(self::fields_status, TableInterface::column_type_VARCHAR, 12, "default 'pending'", '状态')
+                ->addColumn(self::fields_finished, TableInterface::column_type_SMALLINT, 1, 'default 0', '是否完成')
+                ->addColumn(self::fields_auto, TableInterface::column_type_SMALLINT, 1, 'default 1', '是否自动')
+                ->addIndex(TableInterface::index_type_KEY, 'type_id', self::fields_type_id, '类型索引')
+                ->addIndex(TableInterface::index_type_KEY, self::fields_finished, self::fields_finished, '是否完成索引')
+                ->create();
         }
     }
 

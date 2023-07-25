@@ -22,13 +22,27 @@ class Test implements \Weline\Queue\QueueInterface
         return __('测试队列');
     }
 
+    public function tip(): string
+    {
+        return __('测试队列提示');
+    }
+
     public function execute(Queue $queue): string
     {
         return '执行测试队列操作';
     }
 
-    public function fields(): array
+    public function validate(Queue $queue): bool
     {
-        return [];
+        $content = $queue->getContent();
+        if ($content) {
+            $queue->setResult('验证队列消息内容通过');
+            $queue->save();
+            return true;
+        }
+        $queue->setResult('验证队列消息内容失败');
+        $queue->setFinished(true);
+        $queue->save();
+        return false;
     }
 }

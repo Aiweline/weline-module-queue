@@ -52,8 +52,13 @@ class Run implements \Weline\Framework\Console\CommandInterface
         $type = $queue->getType();
         /**@var QueueInterface $queue_execute*/
         $queue_execute = ObjectManager::getInstance($type->getData('class'));
-        $result = $queue_execute->execute($queue);
-        $queue->setResult($result);
+        $type = $queue->getType();
+        if($queue_execute->vaLidate($queue)){
+            $result = $queue_execute->execute($queue);
+            $queue->setResult($result);
+        }else{
+            $result = __('队列消息内容验证不通过。');
+        }
         return $result;
     }
 
@@ -62,6 +67,6 @@ class Run implements \Weline\Framework\Console\CommandInterface
      */
     public function tip(): string
     {
-        return '运行队列';
+        return __('运行队列');
     }
 }

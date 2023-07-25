@@ -28,6 +28,17 @@ interface QueueInterface
     public function name(): string;
 
     /**
+     * @DESC          # 提示
+     *
+     * @AUTH  秋枫雁飞
+     * @EMAIL aiweline@qq.com
+     * @DateTime: 25/7/2023 下午3:41
+     * 参数区：
+     * @return string
+     */
+    public function tip():string;
+
+    /**
      * @DESC          # 队列执行方法
      *
      * @AUTH  秋枫雁飞
@@ -39,13 +50,13 @@ interface QueueInterface
     public function execute(Queue $queue): string;
 
     /**
-     * @DESC          # 必要的队列参数字段.
+     * @DESC          # 验证数据结构是否正确
      *
      * @AUTH  秋枫雁飞
      * @EMAIL aiweline@qq.com
-     * @DateTime: 11/7/2023 下午1:57
+     * @DateTime: 25/7/2023 下午3:40
      * 参数区：
-     * @return array
+     * @return string|bool
      */
-    public function fields(): array;
+    public function validate(Queue $queue):bool;
 }

@@ -51,6 +51,7 @@ class QueueCollect implements \Weline\Framework\Event\ObserverInterface
                 $queues[] = [
                     Type::fields_name => $queue->name(),
                     Type::fields_module_name => $module['name'],
+                    Type::fields_tip => $queue->tip(),
                     Type::fields_class => $queue::class,
                 ];
             }
