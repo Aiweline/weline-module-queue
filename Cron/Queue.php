@@ -72,7 +72,7 @@ QUEUETIP;
         while ($total--) {
             $start_time = time();
             sleep(1);
-            if ($total % 5 == 0) {
+            if ($total % 10 == 0) {
                 $pageSize = 10;
                 $this->queue->pagination();
                 $pages = $this->queue->pagination['lastPage'];
@@ -81,11 +81,11 @@ QUEUETIP;
                     $processes = [];
                     $pipes     = [];
                     $queues    = $this->queue->where($this->queue::fields_finished, 0)
-                                             ->where($this->queue::fields_auto, 1)
-                                             ->pagination($page, $pageSize)
-                                             ->select()
-                                             ->fetch()
-                                             ->getItems();
+                        ->where($this->queue::fields_auto, 1)
+                        ->pagination($page, $pageSize)
+                        ->select()
+                        ->fetch()
+                        ->getItems();
                     /**@var \Weline\Queue\Model\Queue $queue */
                     foreach ($queues as $key => $queue) {
                         # 检测程序是否还在运行
@@ -118,16 +118,16 @@ QUEUETIP;
                         $pipes[$key] = $procPipes;
                         if (is_resource($process)) {
                             $status = proc_get_status($process);
-                            $pid    = $status['pid'];
+                            $pid    = $status['pid'] + 1;
                             # 记录PID
                             $queue->setPid($pid)
-                                  ->setStatus($queue::status_running)
-                                  ->setStartAt(date('Y-m-d H:i:s'))
-                                  ->save();
+                                ->setStatus($queue::status_running)
+                                ->setStartAt(date('Y-m-d H:i:s'))
+                                ->save();
                         } else {
                             $queue->setResult(__('进程创建失败！请检查进程状态！'))
-                                  ->setStatus($queue::status_error)
-                                  ->save();
+                                ->setStatus($queue::status_error)
+                                ->save();
                         }
                     }
                     # 等待页进程结束
