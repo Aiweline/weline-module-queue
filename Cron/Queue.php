@@ -89,7 +89,7 @@ QUEUETIP;
                     /**@var \Weline\Queue\Model\Queue $queue */
                     foreach ($queues as $key => $queue) {
                         # 检测程序是否还在运行
-                        if ($pid = $pullTask->getData($pullTask::fields_PID)) {
+                        if ($pid = $queue->getData($queue::fields_pid)) {
                             if (IS_WIN) {
                                 exec('TASKLIST /NH /FO "CSV" /FI "PID eq ' . $pid . '"', $outputA);
                                 $outputB = explode('","', $outputA[0]);
