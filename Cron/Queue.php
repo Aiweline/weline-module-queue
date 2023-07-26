@@ -118,7 +118,7 @@ QUEUETIP;
                         $pipes[$key] = $procPipes;
                         if (is_resource($process)) {
                             $status = proc_get_status($process);
-                            $pid    = $status['pid'] + 1;
+                            $pid    = $status['pid'];
                             # 记录PID
                             $queue->setPid($pid)
                                 ->setStatus($queue::status_running)
