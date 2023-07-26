@@ -67,25 +67,27 @@ QUEUETIP;
      */
     public function execute(): string
     {
-        # 将每分钟分割成每5秒钟检查一次。
-        $total = 60;
+        # 将每分钟分割成每10秒钟检查一次。
+        $total = 61;
         while ($total--) {
             $start_time = time();
             sleep(1);
             if ($total % 10 == 0) {
                 $pageSize = 10;
-                $this->queue->pagination();
+                $this->queue->where($this->queue::fields_finished, 0)
+                    ->where($this->queue::fields_auto, 1)
+                    ->pagination();
                 $pages = $this->queue->pagination['lastPage'];
                 foreach (range(1, $pages) as $page) {
                     # 进程信息管理
                     $processes = [];
                     $pipes     = [];
                     $queues    = $this->queue->where($this->queue::fields_finished, 0)
-                        ->where($this->queue::fields_auto, 1)
-                        ->pagination($page, $pageSize)
-                        ->select()
-                        ->fetch()
-                        ->getItems();
+                                             ->where($this->queue::fields_auto, 1)
+                                             ->pagination($page, $pageSize)
+                                             ->select()
+                                             ->fetch()
+                                             ->getItems();
                     /**@var \Weline\Queue\Model\Queue $queue */
                     foreach ($queues as $key => $queue) {
                         # 检测程序是否还在运行
@@ -121,13 +123,13 @@ QUEUETIP;
                             $pid    = $status['pid'];
                             # 记录PID
                             $queue->setPid($pid)
-                                ->setStatus($queue::status_running)
-                                ->setStartAt(date('Y-m-d H:i:s'))
-                                ->save();
+                                  ->setStatus($queue::status_running)
+                                  ->setStartAt(date('Y-m-d H:i:s'))
+                                  ->save();
                         } else {
                             $queue->setResult(__('进程创建失败！请检查进程状态！'))
-                                ->setStatus($queue::status_error)
-                                ->save();
+                                  ->setStatus($queue::status_error)
+                                  ->save();
                         }
                     }
                     # 等待页进程结束
