@@ -40,11 +40,11 @@ class QueueCollect implements \Weline\Framework\Event\ObserverInterface
         $queues  = [];
         $modules = Env::getInstance()->getActiveModules();
         foreach ($modules as $module) {
-            $queue_files      = $this->reader->readClass(new Module($module), 'Queue');
+            $queue_files = $this->reader->readClass(new Module($module), 'Queue');
             foreach ($queue_files as $queue_class) {
                 try {
                     $queue_ref = ObjectManager::getReflectionInstance($queue_class);
-                    if(!$queue_ref->isInstantiable()){
+                    if (!$queue_ref->isInstantiable()) {
                         continue;
                     }
                     /**@var QueueInterface $queue */
@@ -52,14 +52,16 @@ class QueueCollect implements \Weline\Framework\Event\ObserverInterface
                 } catch (\Exception $e) {
                     continue;
                 }
-                $queues[] = [
-                    Type::fields_name => $queue->name(),
-                    Type::fields_module_name => $module['name'],
-                    Type::fields_tip => $queue->tip(),
-                    Type::fields_class => $queue::class,
-                ];
+                $this->type->reset()->where(Type::fields_class, $queue::class)
+                           ->find()
+                           ->fetch();
+                $this->type->setModelFieldsData([
+                                                    Type::fields_name => $queue->name(),
+                                                    Type::fields_module_name => $module['name'],
+                                                    Type::fields_tip => $queue->tip(),
+                                                    Type::fields_class => $queue::class,
+                                                ])->save();
             }
         }
-        $this->type->insert($queues, [Type::fields_class])->fetch();
     }
 }
