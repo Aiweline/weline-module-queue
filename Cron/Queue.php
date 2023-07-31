@@ -67,16 +67,14 @@ QUEUETIP;
      */
     public function execute(): string
     {
-        # 将每分钟分割成每10秒钟检查一次。
-        $total = 61;
+        # 将每分钟分割成每5秒钟检查一次。
+        $total = 60;
         while ($total--) {
             $start_time = time();
             sleep(1);
-            if ($total % 10 == 0) {
+            if ($total % 5 == 0) {
                 $pageSize = 10;
-                $this->queue->where($this->queue::fields_finished, 0)
-                    ->where($this->queue::fields_auto, 1)
-                    ->pagination();
+                $this->queue->pagination();
                 $pages = $this->queue->pagination['lastPage'];
                 foreach (range(1, $pages) as $page) {
                     # 进程信息管理
@@ -91,7 +89,7 @@ QUEUETIP;
                     /**@var \Weline\Queue\Model\Queue $queue */
                     foreach ($queues as $key => $queue) {
                         # 检测程序是否还在运行
-                        if ($pid = $queue->getData($queue::fields_pid)) {
+                        if ($pid = $pullTask->getData($pullTask::fields_PID)) {
                             if (IS_WIN) {
                                 exec('TASKLIST /NH /FO "CSV" /FI "PID eq ' . $pid . '"', $outputA);
                                 $outputB = explode('","', $outputA[0]);
