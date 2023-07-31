@@ -47,7 +47,7 @@ interface QueueInterface
      * 参数区：
      * @return string 执行结果
      */
-    public function execute(Queue $queue): string;
+    public function execute(Queue &$queue): string;
 
     /**
      * @DESC          # 验证数据结构是否正确
@@ -58,5 +58,5 @@ interface QueueInterface
      * 参数区：
      * @return string|bool
      */
-    public function validate(Queue $queue):bool;
+    public function validate(Queue &$queue):bool;
 }

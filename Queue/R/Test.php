@@ -28,7 +28,7 @@ class Test implements QueueInterface
         return __('测试队列提示');
     }
 
-    public function execute(Queue $queue): string
+    public function execute(Queue &$queue): string
     {
         return 'r-test运行成功';
     }
@@ -38,7 +38,7 @@ class Test implements QueueInterface
         return [];
     }
 
-    public function validate(Queue $queue): bool
+    public function validate(Queue &$queue): bool
     {
         $content = $queue->getContent();
         if ($content) {
