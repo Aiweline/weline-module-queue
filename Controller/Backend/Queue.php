@@ -31,7 +31,6 @@ class Queue extends \Weline\Framework\App\Controller\BackendController
         if ($search = $this->request->getGet('q')) {
             $this->queue->where("concat(main_table.name,main_table.content,main_table.result) like '%$search%'");
         }
-        p($this->queue->select()->getLastSql());
         $this->queue->pagination()->select()->fetch();
         $this->assign('queues', $this->queue->getItems());
         $this->assign('pagination', $this->queue->getPagination());
