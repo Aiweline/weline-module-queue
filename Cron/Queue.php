@@ -14,17 +14,21 @@ declare(strict_types=1);
 namespace Weline\Queue\Cron;
 
 use Weline\Cron\Helper\CronStatus;
+use Weline\Framework\Output\Cli\Printing;
 
 class Queue implements \Weline\Cron\CronTaskInterface
 {
 
     private \Weline\Queue\Model\Queue $queue;
+    private \Weline\Framework\Output\Cli\Printing $printing;
 
     function __construct(
-        \Weline\Queue\Model\Queue $queue
+        \Weline\Queue\Model\Queue $queue,
+        Printing                  $printing
     )
     {
-        $this->queue = $queue;
+        $this->queue    = $queue;
+        $this->printing = $printing;
     }
 
     /**
@@ -88,19 +92,43 @@ QUEUETIP;
                                              ->getItems();
                     /**@var \Weline\Queue\Model\Queue $queue */
                     foreach ($queues as $key => $queue) {
+                        # 检测队列状态是否在运行状态
+                        $queue_running = false;
+                        $proc_running  = false;
+                        # 检测队列是否在运行
+                        if ($queue->getStatus() == $queue::status_running) {
+                            $queue_running = true;
+                        }
                         # 检测程序是否还在运行
                         if ($pid = $queue->getData($queue::fields_pid)) {
                             if (IS_WIN) {
                                 exec('TASKLIST /NH /FO "CSV" /FI "PID eq ' . $pid . '"', $outputA);
-                                $outputB = explode('","', $outputA[0]);
-                                $running = isset($outputB[1]);
+                                $outputB      = explode('","', $outputA[0]);
+                                $proc_running = isset($outputB[1]);
                             } else {
-                                $running = posix_kill($pid, 0);
+                                $proc_running = posix_kill($pid, 0);
                             }
-                            if ($running) {
-                                $queue->setResult("$pid 进程正在运行...")->save();
+                            if (!$proc_running and $queue_running) {
+                                $queue->setFinished(0)
+                                      ->setPid(0)
+                                      ->setResult(__('进程异常,已重置队列，等待执行...'))
+                                      ->save();
                                 continue;
                             }
+                        }
+
+                        if ($proc_running) {
+                            $this->printing->note("$pid 进程正在运行...", __('队列'));
+                            $queue->setResult("$pid 进程正在运行...")->save();
+                            continue;
+                        } else {
+                            $this->printing->success(__("正在为 '%1' 队列创建进程...", $queue->getName()), __('队列'));
+                        }
+                        # 检测如果上次运行过，需要间隔4个小时后再确认是否要运行
+                        if (time() - strtotime($queue->getStartAt()) < 14400) {
+                            $this->printing->note(__('上次运行时间距离现在不足4小时，等待下次运行...'), __('队列'));
+                            $queue->setResult(__('上次运行时间距离现在不足4小时，等待下次运行...'))->save();
+                            continue;
                         }
                         $queue->setResult('');
                         $descriptorspec = array(
@@ -132,38 +160,35 @@ QUEUETIP;
                     }
                     # 等待页进程结束
                     # 循环检查各进程，直到所有子进程结束
-                    while (array_filter($processes, function ($proc) {
-                        return proc_get_status($proc)['running'];
-                    })) {
-                        foreach ($queues as $i => $queue) {
-                            # 如果有对应进程,读取所有可读取的输出（缓冲未读输出）
-                            if (!empty($pipes[$i])) {
-                                $str = fread($pipes[$i][1], 1024);
-                                if ($str) {
-                                    $queue->setResult($queue->getResult() . $str);
-                                    echo $str;
+                    if ($processes) {
+                        while (array_filter($processes, function ($proc) {
+                            return proc_get_status($proc)['running'];
+                        })) {
+                            foreach ($queues as $i => $queue) {
+                                # 如果有对应进程,读取所有可读取的输出（缓冲未读输出）
+                                if (!empty($pipes[$i])) {
+                                    $str = fread($pipes[$i][1], 1024);
+                                    if ($str) {
+                                        $queue->setResult($queue->getResult() . $str);
+                                        echo $str;
+                                    }
                                 }
                             }
                         }
-                    }
-                    # 关闭所有管道和进程
-                    foreach ($queues as $i => $queue) {
-                        if (!empty($pipes[$i])) {
-                            fclose($pipes[$i][1]);
-                            proc_close($processes[$i]);
-                            $queue->setEndAt(date('Y-m-d H:i:s'));
-                            # 运行完毕将进程ID设置为0
-                            $queue->setPid(0);
-                            $queue->setFinished(true);
-                            $queue->setStatus($queue::status_done);
-                            $queue->save();
+                        # 关闭所有管道和进程
+                        foreach ($queues as $i => $queue) {
+                            if (!empty($pipes[$i])) {
+                                fclose($pipes[$i][1]);
+                                proc_close($processes[$i]);
+                                $queue->setEndAt(date('Y-m-d H:i:s'));
+                                # 运行完毕将进程ID设置为0
+                                $queue->setPid(0);
+                                $queue->setFinished(true);
+                                $queue->setStatus($queue::status_done);
+                                $queue->save();
+                            }
                         }
                     }
-//                    # 长度只消费一页
-//                    $total = $total - $start_time;
-//                    if ($total < 0) {
-//                        break;
-//                    }
                 }
             }
             # 如果执行完已经超出60s直接退出
