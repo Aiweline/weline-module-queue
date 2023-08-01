@@ -68,11 +68,11 @@ QUEUETIP;
     public function execute(): string
     {
         # 将每分钟分割成每5秒钟检查一次。
-        $total = 60;
+        $total = 61;
         while ($total--) {
             $start_time = time();
             sleep(1);
-            if ($total % 5 == 0) {
+            if ($total % 10 == 0) {
                 $pageSize = 10;
                 $this->queue->pagination();
                 $pages = $this->queue->pagination['lastPage'];
