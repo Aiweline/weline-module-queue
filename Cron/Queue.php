@@ -109,7 +109,7 @@ QUEUETIP;
                                 $proc_running = posix_kill($pid, 0);
                             }
                             if (!$proc_running and $queue_running) {
-                                $queue->setFinished(0)
+                                $queue->setFinished(false)
                                       ->setPid(0)
                                       ->setResult(__('进程异常,已重置队列，等待执行...'))
                                       ->save();
