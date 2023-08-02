@@ -77,7 +77,7 @@ class Queue extends \Weline\Framework\Database\Model
         return (int)$this->getData(self::fields_type_id);
     }
 
-    public function getPid(): int
+    public function getPid(): int|null
     {
         return (int)$this->getData(self::fields_pid);
     }
@@ -89,23 +89,23 @@ class Queue extends \Weline\Framework\Database\Model
 
     public function getStartAt(): string
     {
-        return $this->getData(self::fields_start_at);
+        return $this->getData(self::fields_start_at) ?: '';
     }
 
 
     public function getEndAt(): string
     {
-        return $this->getData(self::fields_end_at);
+        return $this->getData(self::fields_end_at) ?: '';
     }
 
     public function getStatus(): string
     {
-        return $this->getData(self::fields_status);
+        return $this->getData(self::fields_status) ?: '';
     }
 
     public function getContent(): string
     {
-        return $this->getData(self::fields_content);
+        return $this->getData(self::fields_content) ?: '';
     }
 
     public function getAuto(): bool
