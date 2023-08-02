@@ -109,7 +109,7 @@ QUEUETIP;
                                 $queue->setFinished(true)
                                       ->setPid(0)
                                       ->setStatus($queue::status_error)
-                                      ->setResult($queue->getResult() . __('进程异常结束...'))
+//                                      ->setResult($queue->getResult() . __('进程异常结束...'))
                                       ->save();
                             }
                             continue;
