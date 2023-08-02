@@ -78,13 +78,15 @@ QUEUETIP;
             sleep(1);
             if ($total % 10 == 0) {
                 $pageSize = 10;
-                $this->queue->pagination();
+                $this->queue->reset()->where($this->queue::fields_finished, 0)
+                            ->where($this->queue::fields_auto, 1)
+                            ->pagination();
                 $pages = $this->queue->pagination['lastPage'];
                 foreach (range(1, $pages) as $page) {
                     # 进程信息管理
                     $processes = [];
                     $pipes     = [];
-                    $queues    = $this->queue->where($this->queue::fields_finished, 0)
+                    $queues    = $this->queue->reset()->where($this->queue::fields_finished, 0)
                                              ->where($this->queue::fields_auto, 1)
                                              ->pagination($page, $pageSize)
                                              ->select()
