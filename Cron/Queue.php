@@ -77,10 +77,9 @@ QUEUETIP;
             $start_time = time();
             sleep(1);
             if ($total % 10 == 0) {
-                $pageSize = 10;
+                $pageSize = 1;
                 $this->queue->reset()->where($this->queue::fields_finished, 0)
                             ->where($this->queue::fields_auto, 1)
-                            ->where($this->queue::fields_status, $this->queue::status_running, '!=')
                             ->pagination();
                 $pages = $this->queue->pagination['lastPage'];
                 foreach (range(1, $pages) as $page) {
@@ -107,10 +106,11 @@ QUEUETIP;
                             if ($proc_running) {
                                 continue;
                             } else {
+                                $queue = $queue->load($queue->getId());
                                 $queue->setFinished(true)
                                       ->setPid(0)
                                       ->setStatus($queue::status_error)
-//                                      ->setResult($queue->getResult() . __('进程异常结束...'))
+                                      ->setResult($queue->getResult() . __('进程异常结束...'))
                                       ->save();
                             }
                             continue;
@@ -131,7 +131,7 @@ QUEUETIP;
                         $pipes[$key] = $procPipes;
                         if (is_resource($process)) {
                             $status = proc_get_status($process);
-                            $pid    = $status['pid'] + 1;
+                            $pid    = $status['pid'];
                             # 记录PID
                             $queue->setPid($pid)
                                   ->setStatus($queue::status_running)
