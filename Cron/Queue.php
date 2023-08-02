@@ -127,9 +127,10 @@ QUEUETIP;
                             $this->printing->success(__("正在为 '%1' 队列创建进程...", $queue->getName()), __('队列'));
                         }
                         # 检测如果上次运行过，需要间隔4个小时后再确认是否要运行
-                        if (time() - strtotime($queue->getStartAt()) < 14400) {
+                        if (empty($queue->getEndAt()) and (time() - strtotime($queue->getStartAt()) < 14400)) {
                             $this->printing->note(__('上次运行时间距离现在不足4小时，等待下次运行...'), __('队列'));
-                            $queue->setResult(__('上次运行时间距离现在不足4小时，等待下次运行...'))->save();
+                            $queue->setResult(__('上次运行时间距离现在不足4小时，等待下次运行...'))
+                                  ->save();
                             continue;
                         }
                         $queue->setResult('');
