@@ -77,7 +77,7 @@ class Queue extends \Weline\Framework\Database\Model
         return (int)$this->getData(self::fields_type_id);
     }
 
-    public function getPid(): int|null
+    public function getPid(): int
     {
         return (int)$this->getData(self::fields_pid);
     }

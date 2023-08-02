@@ -95,7 +95,7 @@ QUEUETIP;
                     /**@var \Weline\Queue\Model\Queue $queue */
                     foreach ($queues as $key => $queue) {
                         # 检测程序是否还在运行
-                        if ($pid = $queue->getData($queue::fields_pid)) {
+                        if ($pid = $queue->getPid()) {
                             if (IS_WIN) {
                                 exec('TASKLIST /NH /FO "CSV" /FI "PID eq ' . $pid . '"', $outputA);
                                 $outputB      = explode('","', $outputA[0]);
@@ -108,7 +108,7 @@ QUEUETIP;
                             } else {
                                 $queue->setFinished(true)
                                       ->setPid(0)
-                                      ->setResult($queue->getResult().__('进程异常结束...'))
+                                      ->setResult($queue->getResult().__('进程结束...'))
                                       ->save();
                             }
                             continue;
