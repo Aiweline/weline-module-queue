@@ -108,7 +108,8 @@ QUEUETIP;
                             } else {
                                 $queue->setFinished(true)
                                       ->setPid(0)
-                                      ->setResult($queue->getResult().__('进程结束...'))
+                                      ->setStatus($queue::status_error)
+                                      ->setResult($queue->getResult() . __('进程异常结束...'))
                                       ->save();
                             }
                             continue;
@@ -129,7 +130,7 @@ QUEUETIP;
                         $pipes[$key] = $procPipes;
                         if (is_resource($process)) {
                             $status = proc_get_status($process);
-                            $pid    = $status['pid'];
+                            $pid    = $status['pid']+1;
                             # 记录PID
                             $queue->setPid($pid)
                                   ->setStatus($queue::status_running)
@@ -147,12 +148,14 @@ QUEUETIP;
                         while (array_filter($processes, function ($proc) {
                             return proc_get_status($proc)['running'];
                         })) {
-                            foreach ($queues as $i => $queue) {
+                            /**@var \Weline\Queue\Model\Queue $queue */
+                            foreach ($queues as $i => &$queue) {
                                 # 如果有对应进程,读取所有可读取的输出（缓冲未读输出）
                                 if (!empty($pipes[$i])) {
                                     $str = fread($pipes[$i][1], 1024);
                                     if ($str) {
-                                        $queue->setResult($queue->getResult() . $str);
+                                        $queue->setResult($queue->getResult() . $str)
+                                              ->save();
                                         echo $str;
                                     }
                                 }
@@ -188,6 +191,6 @@ QUEUETIP;
      */
     public function unlock_timeout(int $minute = 30): int
     {
-        return 1;
+        return 10;
     }
 }
