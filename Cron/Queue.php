@@ -93,10 +93,9 @@ QUEUETIP;
                                              ->fetch()
                                              ->getItems();
                     /**@var \Weline\Queue\Model\Queue $queue */
-                    foreach ($queues as $key => $queue) {
+                    foreach ($queues as $key => &$queue) {
                         # 检测程序是否还在运行
                         if ($pid = $queue->getPid()) {
-                            d($pid);
                             if (IS_WIN) {
                                 exec('TASKLIST /NH /FO "CSV" /FI "PID eq ' . $pid . '"', $outputA);
                                 $outputB      = explode('","', $outputA[0]);
@@ -163,7 +162,7 @@ QUEUETIP;
                             }
                         }
                         # 关闭所有管道和进程
-                        foreach ($queues as $i => $queue) {
+                        foreach ($queues as $i => &$queue) {
                             if (!empty($pipes[$i])) {
                                 fclose($pipes[$i][1]);
                                 proc_close($processes[$i]);
