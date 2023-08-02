@@ -96,6 +96,7 @@ QUEUETIP;
                     foreach ($queues as $key => $queue) {
                         # 检测程序是否还在运行
                         if ($pid = $queue->getPid()) {
+                            d($pid);
                             if (IS_WIN) {
                                 exec('TASKLIST /NH /FO "CSV" /FI "PID eq ' . $pid . '"', $outputA);
                                 $outputB      = explode('","', $outputA[0]);
@@ -130,7 +131,7 @@ QUEUETIP;
                         $pipes[$key] = $procPipes;
                         if (is_resource($process)) {
                             $status = proc_get_status($process);
-                            $pid    = $status['pid']+1;
+                            $pid    = $status['pid'] + 1;
                             # 记录PID
                             $queue->setPid($pid)
                                   ->setStatus($queue::status_running)
