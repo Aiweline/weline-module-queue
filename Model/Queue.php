@@ -107,6 +107,10 @@ class Queue extends \Weline\Framework\Database\Model
     {
         return $this->getData(self::fields_content) ?: '';
     }
+    public function getResult(): string
+    {
+        return $this->getData(self::fields_result) ?: '';
+    }
 
     public function getAuto(): bool
     {
