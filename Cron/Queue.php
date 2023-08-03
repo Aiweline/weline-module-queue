@@ -80,6 +80,7 @@ QUEUETIP;
                 $pageSize = 1;
                 $this->queue->reset()->where($this->queue::fields_finished, 0)
                             ->where($this->queue::fields_auto, 1)
+                            ->where($this->queue::fields_status, $this->queue::status_running, '!=')
                             ->pagination();
                 $pages = $this->queue->pagination['lastPage'];
                 foreach (range(1, $pages) as $page) {
@@ -87,6 +88,7 @@ QUEUETIP;
                     $processes = [];
                     $pipes     = [];
                     $queues    = $this->queue->reset()->where($this->queue::fields_finished, 0)
+                                             ->where($this->queue::fields_status, $this->queue::status_running, '!=')
                                              ->where($this->queue::fields_auto, 1)
                                              ->pagination($page, $pageSize)
                                              ->select()
