@@ -58,7 +58,12 @@ class QueueCollect implements \Weline\Framework\Event\ObserverInterface
                            ->fetch();
                 if($this->type->getId()){
                     $this->type->reset()->where($this->type::fields_ID,$this->type->getId())
-                        ->update()
+                        ->update([
+                            Type::fields_name => $queue->name(),
+                            Type::fields_module_name => $module['name'],
+                            Type::fields_tip => $queue->tip(),
+                            Type::fields_class => $queue::class,
+                        ])
                         ->fetch();
                 }else{
                     $this->type->clearData();
