@@ -52,6 +52,7 @@ class QueueCollect implements \Weline\Framework\Event\ObserverInterface
                 } catch (\Exception $e) {
                     continue;
                 }
+                $this->type->clearData();
                 $this->type->reset()->where(Type::fields_class, $queue::class)
                            ->find()
                            ->fetch();
