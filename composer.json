@@ -4,8 +4,7 @@
   "type": "weline-module",
   "require": {
     "php": "^8.1",
-    "mtdowling/cron-expression": "^1.2",
-    "ext-posix": "*"
+    "mtdowling/cron-expression": "^1.2"
   },
   "authors": [
     {

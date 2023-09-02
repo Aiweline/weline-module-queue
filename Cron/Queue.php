@@ -98,12 +98,15 @@ QUEUETIP;
                     foreach ($queues as $key => &$queue) {
                         # 检测程序是否还在运行
                         if ($pid = $queue->getPid()) {
+                            $proc_running = false;
                             if (IS_WIN) {
                                 exec('TASKLIST /NH /FO "CSV" /FI "PID eq ' . $pid . '"', $outputA);
                                 $outputB      = explode('","', $outputA[0]);
                                 $proc_running = isset($outputB[1]);
                             } else {
-                                $proc_running = posix_kill($pid, 0);
+                                if (file_exists( "/proc/$pid" )){
+                                    $proc_running = true;
+                                }
                             }
                             if ($proc_running) {
                                 continue;
