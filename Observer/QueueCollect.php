@@ -52,15 +52,28 @@ class QueueCollect implements \Weline\Framework\Event\ObserverInterface
                 } catch (\Exception $e) {
                     continue;
                 }
+                $this->type->clearData();
                 $this->type->reset()->where(Type::fields_class, $queue::class)
                            ->find()
                            ->fetch();
-                $this->type->setModelFieldsData([
-                                                    Type::fields_name => $queue->name(),
-                                                    Type::fields_module_name => $module['name'],
-                                                    Type::fields_tip => $queue->tip(),
-                                                    Type::fields_class => $queue::class,
-                                                ])->save();
+                if($this->type->getId()){
+                    $this->type->reset()->where($this->type::fields_ID,$this->type->getId())
+                        ->update([
+                            Type::fields_name => $queue->name(),
+                            Type::fields_module_name => $module['name'],
+                            Type::fields_tip => $queue->tip(),
+                            Type::fields_class => $queue::class,
+                        ])
+                        ->fetch();
+                }else{
+                    $this->type->clearData();
+                    $this->type->setModelFieldsData([
+                        Type::fields_name => $queue->name(),
+                        Type::fields_module_name => $module['name'],
+                        Type::fields_tip => $queue->tip(),
+                        Type::fields_class => $queue::class,
+                    ])->save();
+                }
             }
         }
     }
