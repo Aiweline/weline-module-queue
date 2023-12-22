@@ -91,7 +91,7 @@ QUEUETIP;
                 ->getItems();
             /**@var \Weline\Queue\Model\Queue $queue */
             foreach ($queues as $key => &$queue) {
-                $queue_name = $queue->getName() . '-' . $queue->getId();
+                $queue_name = 'queue-'.$queue->getName() . '-' . $queue->getId();
                 # 检测程序是否还在运行
                 if ($pid = $queue->getPid()) {
                     $output = Process::getProcessOutput($queue_name);
