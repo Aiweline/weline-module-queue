@@ -75,7 +75,7 @@ QUEUETIP;
         $pageSize = 1;
         $this->queue->reset()->where($this->queue::fields_finished, 0)
             ->where($this->queue::fields_auto, 1)
-            ->where($this->queue::fields_status, $this->queue::status_running, '!=')
+            ->where($this->queue::fields_status, $this->queue::status_done, '!=')
             ->pagination();
         $pages = $this->queue->pagination['lastPage'];
         foreach (range(1, $pages) as $page) {
@@ -83,7 +83,7 @@ QUEUETIP;
             $processes = [];
             $pipes     = [];
             $queues    = $this->queue->reset()->where($this->queue::fields_finished, 0)
-                ->where($this->queue::fields_status, $this->queue::status_running, '!=')
+                ->where($this->queue::fields_status, $this->queue::status_done, '!=')
                 ->where($this->queue::fields_auto, 1)
                 ->pagination($page, $pageSize)
                 ->select()
@@ -91,17 +91,22 @@ QUEUETIP;
                 ->getItems();
             /**@var \Weline\Queue\Model\Queue $queue */
             foreach ($queues as $key => &$queue) {
+                $queue_name = $queue->getName() . '-' . $queue->getId();
                 # 检测程序是否还在运行
                 if ($pid = $queue->getPid()) {
+                    $output = Process::getProcessOutput($queue_name);
                     if (Process::isProcessRunning($pid)) {
+                        $queue->setResult($output)->save();
                         continue;
                     } else {
-                        $queue = $queue->load($queue->getId());
                         $queue->setFinished(true)
+                            ->setEndAt(date('Y-m-d H:i:s'))
+                            ->setStatus($queue::status_done)
+                            ->setResult($output . __('进程结束...'))
                             ->setPid(0)
-                            ->setStatus($queue::status_error)
-                            ->setResult($queue->getResult() . __('进程结束...'))
                             ->save();
+                        # 卸载进程记录文件
+                        Process::unsetLogProcessFilePath($queue_name);
                     }
                     continue;
                 }
@@ -112,21 +117,27 @@ QUEUETIP;
                     2 => array('pipe', 'w')    // 子进程将向此管道写入stderr
                 );
                 # 创建异步程序
-                $command = 'cd ' . BP . ' && ' . PHP_BINARY . ' bin/m queue:run --id=' . $queue->getId();
-                $process = proc_open($command, $descriptorspec, $procPipes);
+                $process_log_path = Process::getLogProcessFilePath($queue_name);
+                $command_fix      = !IS_WIN ? ' 2>&1 & echo $!' : '';
+                $command          = 'cd ' . BP . ' && nohup ' . PHP_BINARY . ' bin/m queue:run --id=' . $queue->getId() . ' > ' . $process_log_path . $command_fix;
+                $process          = proc_open($command, $descriptorspec, $procPipes);
                 # 进程保存到进程数组
                 $processes[$key] = $process;
                 # 设置进程非阻塞
                 stream_set_blocking($procPipes[1], false);
                 $pipes[$key] = $procPipes;
                 if (is_resource($process)) {
-                    $status = proc_get_status($process);
-                    $pid    = $status['pid'];
+                    $pid = proc_get_status($process)['pid'] + 2;
+                    // 执行其他操作
                     # 记录PID
                     $queue->setPid($pid)
                         ->setStatus($queue::status_running)
                         ->setStartAt(date('Y-m-d H:i:s'))
                         ->save();
+                    // 关闭文件指针
+                    fclose($procPipes[0]);
+                    fclose($procPipes[1]);
+                    fclose($procPipes[2]);
                 } else {
                     $queue->setResult(__('进程创建失败！请检查进程状态！'))
                         ->setStatus($queue::status_error)
