@@ -127,7 +127,7 @@ QUEUETIP;
                 stream_set_blocking($procPipes[1], false);
                 $pipes[$key] = $procPipes;
                 if (is_resource($process)) {
-                    $pid = proc_get_status($process)['pid'] + 2;
+                    $pid = proc_get_status($process)['pid'];
                     // 执行其他操作
                     # 记录PID
                     $queue->setPid($pid)
