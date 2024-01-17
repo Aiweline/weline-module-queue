@@ -51,7 +51,7 @@ class Type extends \Weline\Framework\Database\Model
             $setup->createTable('队列类型消费者')
                 ->addColumn(self::fields_ID, TableInterface::column_type_INTEGER, 0, 'primary key auto_increment', 'ID')
                 ->addColumn(self::fields_name, TableInterface::column_type_VARCHAR, 255, 'not null', '队列类型名称')
-                ->addColumn(self::fields_tip, TableInterface::column_type_VARCHAR, 255, 'not null', '提示')
+                ->addColumn(self::fields_tip, TableInterface::column_type_TEXT, 1000, 'not null', '提示')
                 ->addColumn(self::fields_module_name, TableInterface::column_type_VARCHAR, 255, 'not null', '队列所属模块名称')
                 ->addColumn(self::fields_class, TableInterface::column_type_VARCHAR, 128, 'not null unique', '队列类型实现类名')
                 ->addAdditional('ENGINE=MyISAM')
