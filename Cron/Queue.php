@@ -186,6 +186,6 @@ QUEUETIP;
      */
     public function unlock_timeout(int $minute = 30): int
     {
-        return 180;
+        return 10;
     }
 }
