@@ -91,7 +91,7 @@ QUEUETIP;
                 ->getItems();
             /**@var \Weline\Queue\Model\Queue $queue */
             foreach ($queues as $key => &$queue) {
-                $queue_name = 'queue-'.$queue->getName() . '-' . $queue->getId();
+                $queue_name = 'queue-' . $queue->getName() . '-' . $queue->getId();
                 # 检测程序是否还在运行
                 if ($pid = $queue->getPid()) {
                     $output = Process::getProcessOutput($queue_name);
@@ -119,8 +119,10 @@ QUEUETIP;
                 # 创建异步程序
                 $process_log_path = Process::getLogProcessFilePath($queue_name);
                 $command_fix      = !IS_WIN ? ' 2>&1 & echo $!' : '';
-                $command          = 'cd ' . BP . ' && nohup ' . PHP_BINARY . ' bin/m queue:run --id=' . $queue->getId() . ' > ' . $process_log_path . $command_fix;
-                $process          = proc_open($command, $descriptorspec, $procPipes);
+                $command          = 'cd ' . BP . ' && nohup ' . PHP_BINARY . ' bin/m queue:run --id=' . $queue->getId() . ' > "' . $process_log_path . '" ' . $command_fix;
+                Process::setProcessOutput($queue_name, $command . PHP_EOL);
+                $process = proc_open($command, $descriptorspec, $procPipes);
+                Process::setProcessOutput($queue_name, json_encode($process) . PHP_EOL);
                 # 进程保存到进程数组
                 $processes[$key] = $process;
                 # 设置进程非阻塞
@@ -186,6 +188,6 @@ QUEUETIP;
      */
     public function unlock_timeout(int $minute = 30): int
     {
-        return 10;
+        return 180;
     }
 }
