@@ -119,7 +119,8 @@ QUEUETIP;
                 # 创建异步程序
                 $process_log_path = Process::getLogProcessFilePath($queue_name);
                 $command_fix      = !IS_WIN ? ' 2>&1 & echo $!' : '';
-                $command          = 'cd ' . BP . ' && nohup ' . PHP_BINARY . ' bin/m queue:run --id=' . $queue->getId() . ' > "' . $process_log_path . '" ' . $command_fix;
+                $process_name     =  PHP_BINARY . ' bin/m queue:run --id=' . $queue->getId();
+                $command          = 'cd ' . BP . ' && nohup ' . $process_name . ' > "' . $process_log_path . '" ' . $command_fix;
                 Process::setProcessOutput($queue_name, $command . PHP_EOL);
                 $process = proc_open($command, $descriptorspec, $procPipes);
                 Process::setProcessOutput($queue_name, json_encode($process) . PHP_EOL);
@@ -129,13 +130,18 @@ QUEUETIP;
                 stream_set_blocking($procPipes[1], false);
                 $pipes[$key] = $procPipes;
                 if (is_resource($process)) {
-                    $pid = proc_get_status($process)['pid'];
-                    // 执行其他操作
-                    # 记录PID
-                    $queue->setPid($pid)
-                        ->setStatus($queue::status_running)
-                        ->setStartAt(date('Y-m-d H:i:s'))
-                        ->save();
+                    $pid = Process::getPidByName($process_name);
+                    if(!$pid){
+                        $queue->setResult(__('进程创建失败！请检查进程状态！'))
+                            ->setStatus($queue::status_error)
+                            ->save();
+                    }else{
+                        # 记录PID
+                        $queue->setPid($pid)
+                            ->setStatus($queue::status_running)
+                            ->setStartAt(date('Y-m-d H:i:s'))
+                            ->save();
+                    }
                     // 关闭文件指针
                     fclose($procPipes[0]);
                     fclose($procPipes[1]);
