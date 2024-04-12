@@ -116,7 +116,19 @@ $themeConfig = \Weline\Framework\Manager\ObjectManager::getInstance(\Weline\Back
                                             <tbody>
                                             <foreach name="queues" item="queue" key="key">
                                                 <tr>
-                                                    <td>{{queue.queue_id}}</td>
+                                                    <td>
+                                                        {{queue.queue_id}}
+                                                        <block class='Weline\Component\Block\OffCanvas'
+                                                               action='queue/backend/queue/show'
+                                                               vars='queue'
+                                                               action-params='{id:queue.queue_id}'
+                                                               id='queue-show'
+                                                               target-button-text='查看全部'
+                                                               target-button-class=''
+                                                               title='查看全部'
+                                                               flush='1'
+                                                        />
+                                                    </td>
                                                     <td>{{queue.pid}}</td>
                                                     <td>{{queue.t_name}}</td>
                                                     <td class='co-name'>{{queue.name}}</td>

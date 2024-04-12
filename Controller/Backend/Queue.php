@@ -40,6 +40,23 @@ class Queue extends \Weline\Framework\App\Controller\BackendController
         return $this->fetch();
     }
 
+    function show()
+    {
+        $id = $this->request->getGet('id');
+        if (empty($id)) {
+            $this->getMessageManager()->addWarning(__('请选择要查看的队列'));
+            $this->redirect('component/offcanvas/error', ['msg' => '请选择要查看的队列', 'reload' => 1]);
+        }
+        $this->queue->load($id);
+        if(!$this->queue->getId()){
+            $this->getMessageManager()->addWarning(__('队列不存在'));
+            $this->redirect('component/offcanvas/error', ['msg' => '队列不存在', 'reload' => 0]);
+        }
+        $this->queue->setData('data',w_var_export(json_decode($this->queue->getData($this->queue::fields_content)),true));
+        $this->assign('queue', $this->queue);
+        return $this->fetch();
+    }
+
     function getDelete()
     {
         $queue_id = $this->request->getGet('id', 0);
