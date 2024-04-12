@@ -54,11 +54,12 @@ class Run implements \Weline\Framework\Console\CommandInterface
         $type            = $queue->getType();
         $validate_result = $queue_execute->vaLidate($queue);
         if (is_bool($validate_result) and $validate_result) {
+            $queue->setStatus($queue::status_running)->setResult(__('正在执行...'))->save();
             $result = $queue_execute->execute($queue);
-            $queue->setResult($result)->save();
+            $queue->setStatus($queue::status_done)->setResult($result)->save();
         } else {
-            $queue->setResult(__('队列消息内容验证不通过。验证消息：') . $validate_result)->save();
-            $result = __('队列消息内容验证不通过。');
+            $result = __('队列消息内容验证不通过。验证结果：') . $validate_result;
+            $queue->setStatus($queue::status_error)->setResult($result)->save();
         }
         return $result;
     }
