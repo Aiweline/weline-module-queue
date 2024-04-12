@@ -132,7 +132,7 @@ QUEUETIP;
                 if (is_resource($process)) {
                     $pid = Process::getPidByName($process_name);
                     if(!$pid){
-                        $queue->setResult(__('进程创建失败！请检查进程状态！'))
+                        $queue->setResult(__('进程创建失败！请检查进程状态！进程名：%1, 执行命令：%2', [$process_name,$command]))
                             ->setStatus($queue::status_error)
                             ->save();
                     }else{
@@ -147,44 +147,11 @@ QUEUETIP;
                     fclose($procPipes[1]);
                     fclose($procPipes[2]);
                 } else {
-                    $queue->setResult(__('进程创建失败！请检查进程状态！'))
+                    $queue->setResult(__('进程创建失败！请检查进程状态！进程名：%1, 执行命令：%2', [$process_name,$command]))
                         ->setStatus($queue::status_error)
                         ->save();
                 }
             }
-//                    # 等待页进程结束
-//                    # 循环检查各进程，直到所有子进程结束
-//                    if ($processes) {
-//                        while (array_filter($processes, function ($proc) {
-//                            return proc_get_status($proc)['running'];
-//                        })) {
-//                            /**@var \Weline\Queue\Model\Queue $queue */
-//                            foreach ($queues as $i => &$queue) {
-//                                # 如果有对应进程,读取所有可读取的输出（缓冲未读输出）
-//                                if (!empty($pipes[$i])) {
-//                                    $str = fread($pipes[$i][1], 1024);
-//                                    if ($str) {
-//                                        $queue->setResult($queue->getResult() . $str)
-//                                              ->save();
-//                                        echo $str;
-//                                    }
-//                                }
-//                            }
-//                        }
-//                        # 关闭所有管道和进程
-//                        foreach ($queues as $i => &$queue) {
-//                            if (!empty($pipes[$i])) {
-//                                fclose($pipes[$i][1]);
-//                                proc_close($processes[$i]);
-//                                $queue->setEndAt(date('Y-m-d H:i:s'));
-//                                # 运行完毕将进程ID设置为0
-//                                $queue->setPid(0);
-//                                $queue->setFinished(true);
-//                                $queue->setStatus($queue::status_done);
-//                                $queue->save();
-//                            }
-//                        }
-//                    }
         }
         return 'OK';
     }
