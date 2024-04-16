@@ -32,9 +32,9 @@ class Queue extends \Weline\Framework\App\Controller\BackendController
             $this->queue->where("concat(main_table.name,main_table.content,main_table.result) like '%$search%'");
         }
         if ($id = $this->request->getGet('id')) {
-            $this->queue->where('main_table.'.$this->queue::fields_ID, $id);
+            $this->queue->where('main_table.' . $this->queue::fields_ID, $id);
         }
-        $this->queue->order('main_table.'.$this->queue::fields_UPDATE_TIME)->pagination()->select()->fetch();
+        $this->queue->order('main_table.' . $this->queue::fields_UPDATE_TIME)->pagination()->select()->fetch();
         $this->assign('queues', $this->queue->getItems());
         $this->assign('pagination', $this->queue->getPagination());
         return $this->fetch();
@@ -45,16 +45,52 @@ class Queue extends \Weline\Framework\App\Controller\BackendController
         $id = $this->request->getGet('id');
         if (empty($id)) {
             $this->getMessageManager()->addWarning(__('请选择要查看的队列'));
-            $this->redirect('component/offcanvas/error', ['msg' => '请选择要查看的队列', 'reload' => 1]);
+            $this->redirect('component/offcanvas/error', ['msg' => __('请选择要查看的队列'), 'reload' => 1]);
+        }
+        $this->queue->joinModel(\Weline\Queue\Model\Queue\Type::class, 't', 'main_table.type_id=t.type_id', 'left')
+            ->where('main_table.' . $this->queue::fields_ID, $id)->find()->fetch();
+        if (!$this->queue->getId()) {
+            $this->getMessageManager()->addWarning(__('队列不存在'));
+            $this->redirect('component/offcanvas/error', ['msg' => __('队列不存在'), 'reload' => 0]);
+        }
+        $this->queue->setData('data', w_var_export(json_decode($this->queue->getData($this->queue::fields_content)), true));
+        $this->assign('queue', $this->queue);
+        # 如果result结果大于1M，就下载
+        $result = $this->queue->getData('result');
+        if (!empty($result)) {
+            $resultSize = mb_strlen($result);
+            if ($resultSize > 1024 * 1024) {
+                $dowloadUrl = $this->request->getUrlBuilder()->getBackendUrl('*/backend/queue/dowloadResult', ['id' => $id]);
+                $sieMb      = round($resultSize / 1024 / 1024, 2);
+                $this->queue->setData('result', __('队列结果过大:%1 Mb。 请<a href="%2">下载队列结果</a>查看。', [$sieMb, $dowloadUrl]));
+            }
+        }
+        return $this->fetch();
+    }
+
+    function dowloadResult()
+    {
+        $id = $this->request->getGet('id');
+        if (empty($id)) {
+            http_response_code(403);
+            exit(__('请选择要下载的队列'));
         }
         $this->queue->load($id);
-        if(!$this->queue->getId()){
-            $this->getMessageManager()->addWarning(__('队列不存在'));
-            $this->redirect('component/offcanvas/error', ['msg' => '队列不存在', 'reload' => 0]);
+        if (!$this->queue->getId()) {
+            http_response_code(404);
+            exit(__('队列不存在'));
         }
-        $this->queue->setData('data',w_var_export(json_decode($this->queue->getData($this->queue::fields_content)),true));
-        $this->assign('queue', $this->queue);
-        return $this->fetch();
+        # 自动将结果result生成txt下载
+        $dowloadName = 'queue_result_' . $id . '.txt';
+        $result      = $this->queue->getData('result');
+        if (!empty($result)) {
+            header('Content-Type: application/octet-stream');
+            header('Content-Disposition: attachment; filename="' . $dowloadName. '"');
+            echo $result;
+            exit;
+        } else {
+            exit(__('队列没有结果'));
+        }
     }
 
     function getDelete()
