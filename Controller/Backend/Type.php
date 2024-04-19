@@ -33,4 +33,20 @@ class Type extends \Weline\Framework\App\Controller\BackendController
         $this->assign('pagination', $this->type->getPagination());
         return $this->fetch();
     }
+
+    function show()
+    {
+        $id = $this->request->getGet('id');
+        if (empty($id)) {
+            $this->getMessageManager()->addWarning(__('请选择要查看的队列类型'));
+            $this->redirect('component/offcanvas/error', ['msg' => __('请选择要查看的队列类型'), 'reload' => 1]);
+        }
+        $this->type->load($id);
+        if (!$this->type->getId()) {
+            $this->getMessageManager()->addWarning(__('队列类型不存在'));
+            $this->redirect('component/offcanvas/error', ['msg' => __('队列类型不存在'), 'reload' => 0]);
+        }
+        $this->assign('type', $this->type);
+        return $this->fetch();
+    }
 }
