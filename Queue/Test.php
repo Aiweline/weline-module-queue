@@ -22,6 +22,11 @@ class Test implements \Weline\Queue\QueueInterface
         return __('测试队列');
     }
 
+    public function attributes(): array
+    {
+        return [];
+    }
+
     public function tip(): string
     {
         return __('测试队列提示');

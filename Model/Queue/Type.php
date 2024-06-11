@@ -13,9 +13,13 @@ declare(strict_types=1);
 
 namespace Weline\Queue\Model\Queue;
 
+use JetBrains\PhpStorm\NoReturn;
+use Weline\Eav\Model\EavAttribute;
 use Weline\Framework\Database\Api\Db\TableInterface;
+use Weline\Framework\Manager\ObjectManager;
 use Weline\Framework\Setup\Data\Context;
 use Weline\Framework\Setup\Db\ModelSetup;
+use Weline\Queue\Model\Queue\Type\Attributes;
 
 class Type extends \Weline\Framework\Database\Model
 {
@@ -24,6 +28,7 @@ class Type extends \Weline\Framework\Database\Model
     public const fields_tip = 'tip';
     public const fields_module_name = 'module_name';
     public const fields_class = 'class';
+    public const fields_attributes = 'attributes';
 
     /**
      * @inheritDoc
@@ -36,9 +41,20 @@ class Type extends \Weline\Framework\Database\Model
     /**
      * @inheritDoc
      */
-    public function upgrade(ModelSetup $setup, Context $context): void
+    #[NoReturn] public function upgrade(ModelSetup $setup, Context $context): void
     {
-        // TODO: Implement upgrade() method.
+        $this->backeup();
+        if ($context->getVersion() >= '1.1.*') {
+            $setup->alterTable()
+                ->addColumn(
+                    self::fields_attributes,
+                    self::fields_class,
+                    TableInterface::column_type_VARCHAR,
+                    1000,
+                    'not null',
+                    '队列类型属性')
+                ->alter();
+        }
     }
 
     /**
@@ -51,7 +67,8 @@ class Type extends \Weline\Framework\Database\Model
             $setup->createTable('队列类型消费者')
                 ->addColumn(self::fields_ID, TableInterface::column_type_INTEGER, 0, 'primary key auto_increment', 'ID')
                 ->addColumn(self::fields_name, TableInterface::column_type_VARCHAR, 255, 'not null', '队列类型名称')
-                ->addColumn(self::fields_tip, TableInterface::column_type_VARCHAR, 255, 'not null', '提示')
+                ->addColumn(self::fields_attributes, TableInterface::column_type_TEXT, 0, '', '队列属性码')
+                ->addColumn(self::fields_tip, TableInterface::column_type_TEXT, 1000, 'not null', '提示')
                 ->addColumn(self::fields_module_name, TableInterface::column_type_VARCHAR, 255, 'not null', '队列所属模块名称')
                 ->addColumn(self::fields_class, TableInterface::column_type_VARCHAR, 128, 'not null unique', '队列类型实现类名')
                 ->addAdditional('ENGINE=MyISAM')
@@ -61,7 +78,7 @@ class Type extends \Weline\Framework\Database\Model
 
     public function getTypeId(): int
     {
-        return $this->getData(self::fields_ID);
+        return (int)$this->getData(self::fields_ID);
     }
 
 
@@ -83,7 +100,7 @@ class Type extends \Weline\Framework\Database\Model
 
     public function getClass(): string
     {
-        return $this->getData(self::fields_class);
+        return $this->getData(self::fields_class) ?? '';
     }
 
     public function setTypeId(int $type_id): static
@@ -109,5 +126,32 @@ class Type extends \Weline\Framework\Database\Model
     public function setClass(string $class): static
     {
         return $this->setData(self::fields_class, $class);
+    }
+
+    public function setAttributes(string $attributes): static
+    {
+        return $this->setData(self::fields_attributes, $attributes);
+    }
+
+    public function getAttributes(array &$options = []): array
+    {
+        $type_id = $this->getTypeId();
+        /** @var Attributes $typeAttributeModel */
+        $typeAttributeModel = ObjectManager::getInstance(Attributes::class);
+        $attributes         = $typeAttributeModel->getAttributesByTypeId($type_id, $options);
+        if (!empty($options['need_array'])) {
+            foreach ($attributes as &$attribute) {
+                $attribute = $attribute->getData();
+            }
+        }
+        return $attributes;
+    }
+
+    public function getAttribute(string $code, array &$options = []): EavAttribute|null
+    {
+        $type_id = $this->getTypeId();
+        /** @var Attributes $typeAttributeModel */
+        $typeAttributeModel = ObjectManager::getInstance(Attributes::class);
+        return $typeAttributeModel->getAttributesByTypeCode($type_id, $code, $options);
     }
 }

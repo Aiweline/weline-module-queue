@@ -13,31 +13,47 @@ declare(strict_types=1);
 
 namespace Weline\Queue\Model;
 
+use Weline\Eav\EavModel;
+use Weline\Eav\EavModelInterface;
+use Weline\Eav\Model\EavAttribute;
 use Weline\Framework\Database\Api\Db\TableInterface;
 use Weline\Framework\Manager\ObjectManager;
 use Weline\Framework\Setup\Data\Context;
 use Weline\Framework\Setup\Db\ModelSetup;
 use Weline\Queue\Model\Queue\Type;
 
-class Queue extends \Weline\Framework\Database\Model
+class Queue extends EavModel
 {
-    public const fields_ID       = 'queue_id';
-    public const fields_type_id  = 'type_id';
-    public const fields_pid      = 'pid';
-    public const fields_name     = 'name';
+
+    /** 实体信息 start */
+    const entity_code = 'queue';
+    const  entity_name = '队列实体';
+    const  entity_id_field_type = 'integer';
+    const  entity_id_field_length = 11;
+    /** 实体信息 end */
+
+    public const fields_ID = 'queue_id';
+    public const fields_type_id = 'type_id';
+    public const fields_pid = 'pid';
+    public const fields_name = 'name';
     public const fields_start_at = 'start_at';
-    public const fields_end_at   = 'end_at';
-    public const fields_result   = 'result';
-    public const fields_content  = 'content';
-    public const fields_status   = 'status';
+    public const fields_end_at = 'end_at';
+    public const fields_result = 'result';
+    public const fields_content = 'content';
+    public const fields_status = 'status';
     public const fields_finished = 'finished';
-    public const fields_auto     = 'auto';
+    public const fields_auto = 'auto';
 
     /*状态*/
     public const status_pending = 'pending';
     public const status_running = 'running';
-    public const status_done    = 'done';
-    public const status_error   = 'error';
+    public const status_done = 'done';
+    public const status_stop = 'stop';
+    public const status_error = 'error';
+    public const fields_module = 'module';
+
+
+    private ?Type $type = null;
 
 
     public function setup(ModelSetup $setup, Context $context): void
@@ -55,20 +71,21 @@ class Queue extends \Weline\Framework\Database\Model
 //                $setup->dropTable();
         if (!$setup->tableExist()) {
             $setup->createTable('任务队列')
-                  ->addColumn(self::fields_ID, TableInterface::column_type_INTEGER, 0, 'primary key auto_increment', 'ID')
-                  ->addColumn(self::fields_pid, TableInterface::column_type_INTEGER, 0, 'default 0', '进程ID')
-                  ->addColumn(self::fields_type_id, TableInterface::column_type_INTEGER, 0, 'not null', '任务类别')
-                  ->addColumn(self::fields_name, TableInterface::column_type_VARCHAR, 255, 'not null', '任务名称')
-                  ->addColumn(self::fields_start_at, TableInterface::column_type_TIMESTAMP, null, '', '开始时间')
-                  ->addColumn(self::fields_end_at, TableInterface::column_type_TIMESTAMP, null, '', '结束时间')
-                  ->addColumn(self::fields_result, TableInterface::column_type_TEXT, null, '', '结果')
-                  ->addColumn(self::fields_content, TableInterface::column_type_TEXT, null, '', '内容')
-                  ->addColumn(self::fields_status, TableInterface::column_type_VARCHAR, 12, "default 'pending'", '状态')
-                  ->addColumn(self::fields_finished, TableInterface::column_type_SMALLINT, 1, 'default 0', '是否完成')
-                  ->addColumn(self::fields_auto, TableInterface::column_type_SMALLINT, 1, 'default 1', '是否自动')
-                  ->addIndex(TableInterface::index_type_KEY, 'type_id', self::fields_type_id, '类型索引')
-                  ->addIndex(TableInterface::index_type_KEY, self::fields_finished, self::fields_finished, '是否完成索引')
-                  ->create();
+                ->addColumn(self::fields_ID, TableInterface::column_type_INTEGER, 0, 'primary key auto_increment', 'ID')
+                ->addColumn(self::fields_pid, TableInterface::column_type_INTEGER, 0, 'default 0', '进程ID')
+                ->addColumn(self::fields_type_id, TableInterface::column_type_INTEGER, 0, 'not null', '任务类别')
+                ->addColumn(self::fields_name, TableInterface::column_type_VARCHAR, 255, 'not null', '任务名称')
+                ->addColumn(self::fields_start_at, TableInterface::column_type_TIMESTAMP, null, '', '开始时间')
+                ->addColumn(self::fields_end_at, TableInterface::column_type_TIMESTAMP, null, '', '结束时间')
+                ->addColumn(self::fields_result, TableInterface::column_type_TEXT, null, '', '结果')
+                ->addColumn(self::fields_content, TableInterface::column_type_TEXT, null, '', '内容')
+                ->addColumn(self::fields_status, TableInterface::column_type_VARCHAR, 12, "default 'pending'", '状态')
+                ->addColumn(self::fields_finished, TableInterface::column_type_SMALLINT, 1, 'default 0', '是否完成')
+                ->addColumn(self::fields_auto, TableInterface::column_type_SMALLINT, 1, 'default 1', '是否自动')
+                ->addColumn(self::fields_module, TableInterface::column_type_VARCHAR, 255, 'not null', '模组')
+                ->addIndex(TableInterface::index_type_KEY, 'type_id', self::fields_type_id, '类型索引')
+                ->addIndex(TableInterface::index_type_KEY, self::fields_finished, self::fields_finished, '是否完成索引')
+                ->create();
         }
     }
 
@@ -107,6 +124,7 @@ class Queue extends \Weline\Framework\Database\Model
     {
         return $this->getData(self::fields_content) ?: '';
     }
+
     public function getResult(): string
     {
         return $this->getData(self::fields_result) ?: '';
@@ -131,6 +149,16 @@ class Queue extends \Weline\Framework\Database\Model
     public function setName(string $name): static
     {
         return $this->setData(self::fields_name, $name);
+    }
+
+    public function setModule(string $module_name): static
+    {
+        return $this->setData(self::fields_module, $module_name);
+    }
+
+    public function getModule(): string
+    {
+        return (string)$this->getData(self::fields_module);
     }
 
     public function setStartAt(string $start_at): static
@@ -164,6 +192,42 @@ class Queue extends \Weline\Framework\Database\Model
         return $this->setData(self::fields_finished, $finished ? 1 : 0);
     }
 
+    public function isFinished(): bool
+    {
+        return (bool)$this->getData(self::fields_finished);
+    }
+
+    public function isRunning(): bool
+    {
+        return $this->getData(self::fields_status) === self::status_running;
+    }
+
+    public function isPending(): bool
+    {
+        return $this->getData(self::fields_status) === self::status_pending;
+    }
+
+    public function isFailed(): bool
+    {
+        return $this->getData(self::fields_status) === self::status_error;
+    }
+
+    public function isError(): bool
+    {
+        return $this->getData(self::fields_status) === self::status_error;
+    }
+
+    public function isSuccess(): bool
+    {
+        return $this->getData(self::fields_status) === self::status_done;
+    }
+
+
+    public function isDone(): bool
+    {
+        return $this->getData(self::fields_status) === self::status_done;
+    }
+
     public function setAuto(bool $auto): static
     {
         return $this->setData(self::fields_auto, $auto ? 1 : 0);
@@ -171,8 +235,122 @@ class Queue extends \Weline\Framework\Database\Model
 
     public function getType(): Type
     {
-        /**@var Type $type */
-        $type = ObjectManager::getInstance(Type::class);
-        return $type->load($this->getTypeId());
+        if (!$this->type) {
+            /**@var Type $type */
+            $type = ObjectManager::getInstance(Type::class, []);
+            $type->load($this->getTypeId());
+            $this->type = clone $type;
+        }
+        return $this->type;
+    }
+
+    public function getAttributes(array $options_data = []): array
+    {
+        if (empty($options_data)) {
+            $options_data = [
+                'label_class' => 'control-label',
+                'attrs' => ['class' => 'form-control w-100 readonly disabled', 'disabled' => 'disabled'],
+                'entity' => $this,
+                'no_html' => 1
+            ];
+        }
+        return $this->getType()->getAttributes($options_data);
+    }
+
+    public function getAttribute(string $code, int|string $entity_id = null, array $options_data = []): EavAttribute|null
+    {
+        if ($entity_id) {
+            $entity = ObjectManager::make($this::class)->load($entity_id);
+        } else {
+            $entity = $this;
+        }
+        if (empty($options_data)) {
+            $options_data = [
+                'label_class' => 'control-label',
+                'attrs' => ['class' => 'form-control w-100 readonly disabled', 'disabled' => 'disabled'],
+                'entity' => $entity,
+                'no_html' => 1
+            ];
+        }
+        return $this->getType()->getAttribute($code, $options_data);
+    }
+
+    public function getTypeAttributes(array $options_data = []): array
+    {
+        if (empty($options_data)) {
+            $options_data = [
+                'label_class' => 'control-label',
+                'attrs' => ['class' => 'form-control w-100 readonly disabled', 'disabled' => 'disabled'],
+                'entity' => $this,
+                'no_html' => 1
+            ];
+        }
+        return $this->getType()->getAttributes($options_data);
+    }
+
+    public function getTypeAttributesParams(array $options_data = []): array
+    {
+        if (empty($options_data)) {
+            $options_data = [
+                'label_class' => 'control-label',
+                'attrs' => ['class' => 'form-control w-100 readonly disabled', 'disabled' => 'disabled'],
+                'entity' => $this,
+                'no_html' => 1
+            ];
+        }
+        $attributes = $this->getType()->getAttributes($options_data);
+        /**@var EavAttribute $attr */
+        foreach ($attributes as &$attr) {
+            /**@var \Weline\Eav\Model\EavAttribute\Type $attrType */
+            $attrType        = $attr->getType();
+            $eav_model_class = $attrType->getModelClass();
+            /**@var EavModelInterface $eav_model */
+            $eav_model = ObjectManager::make($eav_model_class);
+            $options   = $eav_model->getModelData() ?: $attr->getOptions();
+            $value     = $attr->getValue();
+            $params    = [];
+            if (is_array($value)) {
+                foreach ($value as $i => $v) {
+                    if (isset($options[$v])) {
+                        $params[$v] = [
+                            'value' => $v,
+                            'label' => $options[$v],
+                        ];
+                    }
+                }
+            } else {
+                if (isset($options[$value])) {
+                    $params[$value] = [
+                        'value' => $value,
+                        'label' => $options[$value],
+                    ];
+                } else {
+                    $params[$value] = [
+                        'value' => $value,
+                        'label' => $value,
+                    ];
+                }
+            }
+            $attr->setData('params', $params);
+            $attr->setData('options', $options);
+        }
+        return $attributes;
+    }
+
+    public static function getRunningItems(): array
+    {
+        /**@var Queue $queue */
+        $queue = ObjectManager::make(self::class);
+        return $queue->where(self::fields_status, self::status_running)
+            ->select()->getItems();
+    }
+
+    public function validateAttribute(EavAttribute $attribute): bool|string
+    {
+        $type = $attribute->getType();
+        if ($type->getRequired() and ($attribute->getValue() == null or $attribute->getValue() == '')) {
+            return __('请填写 %1', $attribute->getName());
+        }
+        return true;
     }
 }

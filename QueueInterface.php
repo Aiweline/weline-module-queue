@@ -28,6 +28,17 @@ interface QueueInterface
     public function name(): string;
 
     /**
+     * @DESC          # 队列类型所需属性  使用：\Weline\Eav\Model\EavAttribute[]
+     *
+     * @AUTH  秋枫雁飞
+     * @EMAIL aiweline@qq.com
+     * @DateTime: 23/4/2024 下午4:55
+     * 参数区：
+     * @return array \Weline\Eav\Model\EavAttribute[]
+     */
+    public function attributes(): array;
+
+    /**
      * @DESC          # 提示
      *
      * @AUTH  秋枫雁飞
@@ -36,7 +47,7 @@ interface QueueInterface
      * 参数区：
      * @return string
      */
-    public function tip():string;
+    public function tip(): string;
 
     /**
      * @DESC          # 队列执行方法
@@ -58,5 +69,5 @@ interface QueueInterface
      * 参数区：
      * @return string|bool
      */
-    public function validate(Queue &$queue):bool;
+    public function validate(Queue &$queue): bool;
 }

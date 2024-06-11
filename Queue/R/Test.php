@@ -33,7 +33,7 @@ class Test implements QueueInterface
         return 'r-test运行成功';
     }
 
-    public function fields(): array
+    public function attributes(): array
     {
         return [];
     }

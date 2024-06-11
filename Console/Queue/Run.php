@@ -32,7 +32,7 @@ class Run implements \Weline\Framework\Console\CommandInterface
     /**
      * @inheritDoc
      */
-    public function execute(array $args = [], array $data = []):string
+    public function execute(array $args = [], array $data = []): string
     {
         $id = $args[1] ?? 0;
         if ($id == 0) {
@@ -41,7 +41,6 @@ class Run implements \Weline\Framework\Console\CommandInterface
             exit();
         }
         $id    = str_replace('--id=', '', $id);
-        /**@var */
         $queue = $this->queue->load($id);
         if (empty($queue->getId())) {
             $this->printing->error('队列不存在。 ');
@@ -50,14 +49,18 @@ class Run implements \Weline\Framework\Console\CommandInterface
         }
         # 获取执行者
         $type = $queue->getType();
-        /**@var QueueInterface $queue_execute*/
-        $queue_execute = ObjectManager::getInstance($type->getData('class'));
-        $type = $queue->getType();
-        if($queue_execute->vaLidate($queue)){
+        /**@var QueueInterface $queue_execute */
+        $queue_execute   = ObjectManager::getInstance($type->getData('class'));
+        $type            = $queue->getType();
+        $validate_result = $queue_execute->vaLidate($queue);
+        if (is_bool($validate_result) and $validate_result) {
+            $queue->setResult(__('正在执行...'))->save();
             $result = $queue_execute->execute($queue);
-            $queue->setResult($result);
-        }else{
-            $result = __('队列消息内容验证不通过。');
+            $queue->setResult($result)
+                ->save();
+        } else {
+            $result = __('队列消息内容验证不通过。验证结果：') . $validate_result;
+            $queue->setResult($result)->save();
         }
         return $result;
     }
