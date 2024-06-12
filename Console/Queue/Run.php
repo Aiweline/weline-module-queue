@@ -59,7 +59,8 @@ class Run implements \Weline\Framework\Console\CommandInterface
             $queue->setResult($result)
                 ->save();
         } else {
-            $result = __('队列消息内容验证不通过。验证结果：') . $validate_result;
+            $result = __('队列消息内容验证不通过。验证结果：') . ($validate_result?$queue->getResult():'');
+            $this->printing->error($result);
             $queue->setResult($result)->save();
         }
         return $result;
