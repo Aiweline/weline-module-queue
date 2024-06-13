@@ -271,9 +271,11 @@ class Queue extends \Weline\Framework\App\Controller\BackendController
         $options_data = [
             'label_class' => 'control-label',
             'attrs' => ['class' => 'form-control w-100', 'scope' => 'queue','file-ext'=>'*','file-size'=>'102400000'],
-            'entity' => $this->queue,
             'need_array' => 1
         ];
+        if($this->queue->getId()){
+            $options_data['entity'] = $this->queue;
+        }
         $type->setData($userData);
         $json['data'] = $type->getAttributes($options_data);
         return $this->fetchJson($json);

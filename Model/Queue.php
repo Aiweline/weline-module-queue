@@ -28,8 +28,8 @@ class Queue extends EavModel
     /** 实体信息 start */
     const entity_code = 'queue';
     const  entity_name = '队列实体';
-    const  entity_id_field_type = 'integer';
-    const  entity_id_field_length = 11;
+    const  eav_entity_id_field_type = 'integer';
+    const  eav_entity_id_field_length = 11;
     /** 实体信息 end */
 
     public const fields_ID = 'queue_id';

@@ -87,9 +87,10 @@ class Helper
                         ->find()
                         ->fetch();
                     if ($queueTypeAttributeModel->getId()) {
-                        $queueTypeAttributeModel->reset()->where($queueTypeAttributeModel::fields_attribute_id, $attr->getId())
+                        $queueTypeAttributeModel->reset()->where($queueTypeAttributeModel::fields_code, $attr->getCode())
                             ->where($queueTypeAttributeModel::fields_type_id, $type_id)
                             ->update($queueTypeAttributeModel::fields_name, $attr->getName())
+                            ->update($queueTypeAttributeModel::fields_attribute_id, $attr->getId())
                             ->fetch();
                         continue;
                     }

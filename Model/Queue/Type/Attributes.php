@@ -150,23 +150,23 @@ class Attributes extends Model
     function getAttributesByTypeId(int $type_id, array $options = []): array
     {
         $type_attributes = $this->reset()
-            ->fields(EavAttribute::fields_code)
+            ->fields(EavAttribute::fields_ID)
             ->where(self::fields_type_id, $type_id)
             ->select()
             ->fetchOrigin();
         if (empty($type_attributes)) {
             return [];
         }
-        $type_attributes_code = array_column($type_attributes, EavAttribute::fields_code);
+        $type_attributes_ids = array_column($type_attributes, EavAttribute::fields_ID);
         /**@var EavModel $entity */
         $entity = $options['entity'] ?? null;
         /** @var EavAttribute $attribute */
         $attribute = ObjectManager::getInstance(EavAttribute::class);
         $wheres    = [
-            [EavAttribute::fields_code, 'IN', $type_attributes_code],
+            [EavAttribute::fields_ID, 'IN', $type_attributes_ids],
         ];
         if ($entity) {
-            $wheres[] = [EavAttribute::fields_eav_entity_id, '=', $entity->getEntityId()];
+            $wheres[] = [EavAttribute::fields_eav_entity_id, '=', $entity->getEavEntityId()];
         }
         $attributes = $attribute
             ->where($wheres)
