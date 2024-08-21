@@ -150,16 +150,21 @@ class Attributes extends Model
     function getAttributesByTypeId(int $type_id, array $options = []): array
     {
         $type_attributes = $this->reset()
-            ->fields(EavAttribute::fields_ID)
+            ->fields(self::fields_attribute_id.', '.self::fields_name)
             ->where(self::fields_type_id, $type_id)
             ->select()
             ->fetchOrigin();
         if (empty($type_attributes)) {
             return [];
         }
+        $typeAttributeNames = [];
+        foreach ($type_attributes as $typeAttribute) {
+            $typeAttributeNames[$typeAttribute[self::fields_attribute_id]] = $typeAttribute[self::fields_name];
+        }
         $type_attributes_ids = array_column($type_attributes, EavAttribute::fields_ID);
         /**@var EavModel $entity */
-        $entity = $options['entity'] ?? null;
+        $entity        = $options['entity'] ?? null;
+        $eav_entity_id = $options['eav_entity_id'] ?? null;
         /** @var EavAttribute $attribute */
         $attribute = ObjectManager::getInstance(EavAttribute::class);
         $wheres    = [
@@ -167,9 +172,13 @@ class Attributes extends Model
         ];
         if ($entity) {
             $wheres[] = [EavAttribute::fields_eav_entity_id, '=', $entity->getEavEntityId()];
+        } elseif ($eav_entity_id) {
+            $wheres[] = [EavAttribute::fields_eav_entity_id, '=', $eav_entity_id];
         }
-        $attributes = $attribute
+
+        $attributes = $attribute->reset()->clearData()
             ->where($wheres)
+            ->order(EavAttribute::fields_dependence, 'ASC')
             ->select()
             ->fetch()
             ->getItems();
@@ -180,8 +189,9 @@ class Attributes extends Model
             if ($entity) {
                 $attr->current_setEntity($entity);
             }
-            $attr->setName(__($attr->getName()));
-            $options_data['attrs']['placeholder'] = $attr->getName();
+            $name = __($typeAttributeNames[$attr->getId()]);
+            $attr->setName($name);
+            $options_data['attrs']['placeholder'] = $name;
             if (empty($options['no_html'])) {
                 $attr->setData('html', $attr->getHtml($options_data));
             }
@@ -193,7 +203,7 @@ class Attributes extends Model
     function getAttributesByTypeCode(int $type_id, string $code, array $options = []): EavAttribute|null
     {
         $type_code_attribute = $this->reset()
-            ->fields(EavAttribute::fields_code)
+            ->fields(self::fields_code.','.self::fields_name)
             ->where(self::fields_type_id, $type_id)
             ->where(self::fields_code, $code)
             ->find()
@@ -203,24 +213,29 @@ class Attributes extends Model
         }
         /**@var EavModel $entity */
         $entity = $options['entity'] ?? null;
+        $eav_entity_id = $options['eav_entity_id'] ?? null;
         /** @var EavAttribute $attribute */
         $attribute = ObjectManager::make(EavAttribute::class);
         $wheres    = [
             [EavAttribute::fields_code, '=', $code],
         ];
         if ($entity) {
-            $wheres[] = [EavAttribute::fields_eav_entity_id, '=', $entity->getEntityId()];
+            $wheres[] = [EavAttribute::fields_eav_entity_id, '=', $entity->getEavEntityId()];
+        }elseif ($eav_entity_id) {
+            $wheres[] = [EavAttribute::fields_eav_entity_id, '=', $eav_entity_id];
         }
         $attribute
             ->where($wheres)
+            ->order(EavAttribute::fields_dependence, 'ASC')
             ->find()
             ->fetch();
         $options_data = $options;
         if ($entity) {
             $attribute->current_setEntity($entity);
         }
-        $attribute->setName(__($attribute->getName()));
-        $options_data['attrs']['placeholder'] = $attribute->getName();
+        $name = __($type_code_attribute[self::fields_name]);
+        $attribute->setName($name);
+        $options_data['attrs']['placeholder'] = $name;
         if (empty($options['no_html'])) {
             $attribute->setData('html', $attribute->getHtml($options_data));
         }

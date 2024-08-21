@@ -52,7 +52,8 @@ class Queue extends \Weline\Framework\App\Controller\BackendController
         if ($id = $this->request->getGet('id')) {
             $this->queue->where('main_table.' . $this->queue::fields_ID, $id);
         }
-        $this->queue->additional('order by CASE status WHEN \'' . \Weline\Queue\Model\Queue::status_running . '\' THEN 0 WHEN \'' . \Weline\Queue\Model\Queue::status_pending . '\' THEN 1 WHEN \'' . \Weline\Queue\Model\Queue::status_done . '\' THEN 2  WHEN \'' . \Weline\Queue\Model\Queue::status_error . '\' THEN  3 END ASC,main_table.update_time DESC');
+        $this->queue->order('main_table.queue_id');
+//        $this->queue->additional('order by CASE status WHEN \'' . \Weline\Queue\Model\Queue::status_running . '\' THEN 0 WHEN \'' . \Weline\Queue\Model\Queue::status_pending . '\' THEN 1 WHEN \'' . \Weline\Queue\Model\Queue::status_done . '\' THEN 2  WHEN \'' . \Weline\Queue\Model\Queue::status_error . '\' THEN  3 END ASC,main_table.update_time DESC');
         $this->queue->pagination()->select()->fetch();
         $this->assign('queues', $this->queue->getItems());
         $this->assign('module', $module);
@@ -101,7 +102,7 @@ class Queue extends \Weline\Framework\App\Controller\BackendController
             $this->assign('queueData', $queue->getData());
             $this->assign('module', $module);
             $this->assign('dir', $dir);
-            return $this->fetch('form');
+            return $this->fetch();
         }
         $json   = ['code' => 404, 'msg' => ''];
         $module = $this->request->getGet('module') ?: $this->request->getModuleName();
@@ -148,6 +149,9 @@ class Queue extends \Weline\Framework\App\Controller\BackendController
             $json['msg'] = __('创建队列失败');
             return $this->fetchJson($json);
         }
+        # 队列添加事件
+        $this->getEventManager()->dispatch('Weline_Queue::' . ($edit ? 'edit' : 'add'), ['queue' => $this->queue]);
+        $this->queue->setResult($json['msg'])->save();
         # 写入属性
         /**@var Attributes $attributeModel */
         $attributeModel = ObjectManager::getInstance(Attributes::class);
@@ -195,9 +199,10 @@ class Queue extends \Weline\Framework\App\Controller\BackendController
                 try {
                     $this->queue
                         ->getAttribute($attribute['code'])
-                        ->setValue($this->queue->getId(), $attribute['value']);
+                        ->setValue($queue_id, $attribute['value']);
                 } catch (\ReflectionException|\Weline\Framework\App\Exception|Core $e) {
                     $json['msg'] = __('设置队列属性失败！请修改重试。%1', $e->getMessage());
+                    $this->queue->load($queue_id);
                     $this->queue->setResult($json['msg'])->save();
                     return $this->fetchJson($json);
                 }
@@ -217,9 +222,7 @@ class Queue extends \Weline\Framework\App\Controller\BackendController
         $userData->deleteScope($this->session->getLoginUserID(), 'queue');
         $json['code'] = 200;
         $json['msg']  = $edit ? __('队列已编辑！等待运行中...') : __('队列已成功创建！等待运行中...');
-        # 队列添加事件
-        $this->getEventManager()->dispatch('Weline_Queue::' . ($edit ? 'edit' : 'add'), ['queue' => $this->queue]);
-        $this->queue->setResult($json['msg'])->save();
+
         return $this->fetchJson($json);
     }
 
@@ -271,10 +274,13 @@ class Queue extends \Weline\Framework\App\Controller\BackendController
         $options_data = [
             'label_class' => 'control-label',
             'attrs' => ['class' => 'form-control w-100', 'scope' => 'queue','file-ext'=>'*','file-size'=>'102400000'],
-            'need_array' => 1
+            'need_array' => 1,
+            'values' => $userData,
         ];
         if($this->queue->getId()){
             $options_data['entity'] = $this->queue;
+        }else{
+            $options_data['values'] =$userData;
         }
         $type->setData($userData);
         $json['data'] = $type->getAttributes($options_data);
@@ -308,13 +314,13 @@ class Queue extends \Weline\Framework\App\Controller\BackendController
         $id = $this->request->getGet('id');
         if (empty($id)) {
             $this->getMessageManager()->addWarning(__('请选择要查看的队列'));
-            $this->redirect('component/offcanvas/error', ['msg' => __('请选择要查看的队列'), 'reload' => 1]);
+            $this->redirect('/component/offcanvas/error', ['msg' => __('请选择要查看的队列'), 'reload' => 1]);
         }
-        $this->queue->joinModel(\Weline\Queue\Model\Queue\Type::class, 't', 'main_table.type_id=t.type_id', 'left')
+        $res = $this->queue->joinModel(\Weline\Queue\Model\Queue\Type::class, 't', 'main_table.type_id=t.type_id', 'left')
             ->where('main_table.' . $this->queue::fields_ID, $id)->find()->fetch();
         if (!$this->queue->getId()) {
             $this->getMessageManager()->addWarning(__('队列不存在'));
-            $this->redirect('component/offcanvas/error', ['msg' => __('队列不存在'), 'reload' => 0]);
+            $this->redirect('/component/offcanvas/error', ['msg' => __('队列不存在'), 'reload' => 0]);
         }
         # 加载属性数据
         $type         = $this->queue->getType();
@@ -378,7 +384,7 @@ class Queue extends \Weline\Framework\App\Controller\BackendController
             $this->getMessageManager()->addWarning(__('队列未处于等待状态无法删除！'));
             $this->redirect($this->request->getReferer());
         }
-        $this->queue->delete();
+        $this->queue->delete()->fetch();
         $this->getMessageManager()->addSuccess(__('队列已成功删除！'));
         # 队列添加事件
         $this->getEventManager()->dispatch('Weline_Queue::delete', ['queue' => $this->queue]);

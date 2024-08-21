@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Weline\Queue\Console\Queue;
 
+use Weline\Cron\Helper\Process;
+use Weline\Framework\App\System;
 use Weline\Framework\Manager\ObjectManager;
 use Weline\Framework\Output\Cli\Printing;
 use Weline\Queue\Model\Queue;
@@ -36,32 +38,45 @@ class Run implements \Weline\Framework\Console\CommandInterface
     {
         $id = $args[1] ?? 0;
         if ($id == 0) {
-            $this->printing->error('请输入队列ID。 ');
-            $this->printing->success('正确示例：php bin/m queue:run --id=1');
+            $this->printing->error(__('请输入队列ID。 '));
+            $this->printing->success(__('正确示例：php bin/m queue:run --id=1'));
             exit();
         }
         $id    = str_replace('--id=', '', $id);
         $queue = $this->queue->load($id);
         if (empty($queue->getId())) {
-            $this->printing->error('队列不存在。 ');
-            $this->printing->success('正确示例：php bin/m queue:run --id=1');
+            $this->printing->error(__('队列不存在。 '));
+            $this->printing->success(__('正确示例：php bin/m queue:run --id=%1',$id));
             exit();
         }
+
         # 获取执行者
         $type = $queue->getType();
         /**@var QueueInterface $queue_execute */
         $queue_execute   = ObjectManager::getInstance($type->getData('class'));
-        $type            = $queue->getType();
         $validate_result = $queue_execute->vaLidate($queue);
         if (is_bool($validate_result) and $validate_result) {
-            $queue->setResult(__('正在执行...'))->save();
-            $result = $queue_execute->execute($queue);
-            $queue->setResult($result)
+            $queue->setStatus($queue::status_running)
+                ->setResult(__('正在执行...'))
                 ->save();
+            try {
+                $result = $queue_execute->execute($queue);
+                $queue->setStatus($queue::status_done)
+                    ->setResult($result)
+                    ->save();
+            } catch (\Throwable $e) {
+                $result = $e->getMessage();
+                $queue->setStatus($queue::status_error)
+                    ->setResult($result)
+                    ->save();
+                throw $e;
+            }
         } else {
-            $result = __('队列消息内容验证不通过。验证结果：') . ($validate_result?$queue->getResult():'');
+            $result = __('队列消息内容验证不通过。') . ($validate_result ? __('验证结果：') . $queue->getResult() : '');
             $this->printing->error($result);
-            $queue->setResult($result)->save();
+            $queue->setStatus($queue::status_error)
+                ->setResult($result)
+                ->save();
         }
         return $result;
     }
@@ -71,6 +86,6 @@ class Run implements \Weline\Framework\Console\CommandInterface
      */
     public function tip(): string
     {
-        return __('运行队列');
+        return __('运行队列. ') . 'php bin/m queue:run --id=1';
     }
 }

@@ -44,7 +44,6 @@ $themeConfig = \Weline\Framework\Manager\ObjectManager::getInstance(\Weline\Back
                             <p class='card-title-desc'>
                                 <lang>查看队列详细信息</lang>
                             </p>
-                            <!--ID-->
                             <p>
                                 <b>
                                     <lang>ID</lang>
@@ -52,9 +51,66 @@ $themeConfig = \Weline\Framework\Manager\ObjectManager::getInstance(\Weline\Back
                                 : {{queue.queue_id}}<br></p>
                             <p>
                                 <b>
+                                    <lang>队列状态</lang>
+                                </b>
+                                :
+                                <if condition="queue.status == 'done'">
+                                    <span class='badge badge-success text-success font-size-24'><lang>已完成</lang></span>
+                                    <elseif condition="queue.status == 'pending'"/>
+                                    <span class='badge badge-warning text-warning font-size-24'>
+                                        <lang>等待中</lang>
+                                    </span>
+                                    <elseif condition="queue.status == 'running'"/>
+                                    <span class='badge badge-primary text-primary font-size-24'><lang>运行中</lang></span>
+                                    <elseif condition="queue.status == 'error'"/>
+                                    <span class='badge badge-danger  text-danger font-size-24'><lang>错误</lang></span>
+                                </if>
+                                <br></p>
+                            <p>
+                                <b>
+                                    <lang>进程ID</lang>
+                                </b>
+                                : {{queue.pid}}<br></p>
+                            <p>
+                                <b>
+                                    <lang>运行结果</lang>
+                                </b>
+                                : <br></p>
+                            <p>
+                            <div class='card-footer'>
+                                {{queue.result}}
+                            </div>
+                            </p>
+                            <p>
+                                <b>
+                                    <lang>开始于</lang>
+                                </b>
+                                : {{queue.start_at}}<br></p>
+                            <p>
+                                <b>
+                                    <lang>结束于</lang>
+                                </b>
+                                : {{queue.end_at}}<br></p>
+                            <p>
+                                <b>
                                     <lang>队列名称</lang>
                                 </b>
                                 : {{queue.name}}<br></p>
+                            <p>
+                                <b>
+                                    <lang>创建时间</lang>
+                                </b>
+                                : {{queue.create_time}}<br></p>
+                            <p>
+                                <b>
+                                    <lang>更新时间</lang>
+                                </b>
+                                : {{queue.update_time}}<br></p>
+                            <p>
+                                <b>
+                                    <lang>队列执行类</lang>
+                                </b>
+                                : {{queue.class}}<br></p>
                             <p>
                                 <b>
                                     <lang>队列类型</lang>
@@ -66,42 +122,7 @@ $themeConfig = \Weline\Framework\Manager\ObjectManager::getInstance(\Weline\Back
                                 </b>
                                 : {{queue.tip}}<br></p>
                             <p>
-                                <b>
-                                    <lang>队列执行类</lang>
-                                </b>
-                                : {{queue.class}}<br></p>
-                            <p>
-                                <b>
-                                    <lang>队列状态</lang>
-                                </b>
-                                :
-                                <if condition="queue.status == 'done'">
-                                    <span class="badge badge-success text-success"><lang>已完成</lang></span>
-                                    <elseif condition="queue.status == 'pending'"/>
-                                    <sapn class="badge badge-warning text-warning">
-                                        <lang>等待中</lang>
-                                    </sapn>
-                                    <elseif condition="queue.status == 'running'"/>
-                                    <span class="badge badge-primary text-primary"><lang>运行中</lang></span>
-                                    <elseif condition="queue.status == 'error'"/>
-                                    <span class="badge badge-danger  text-danger"><lang>错误</lang></span>
-                                </if>
-                                <br></p>
-                            <p>
-                                <b>
-                                    <lang>进程ID</lang>
-                                </b>
-                                : {{queue.pid}}<br></p>
-                            <p>
-                                <b>
-                                    <lang>开始于</lang>
-                                </b>
-                                : {{queue.start_at}}<br></p>
-                            <p>
-                                <b>
-                                    <lang>结束于</lang>
-                                </b>
-                                : {{queue.end_at}}<br></p>
+
                             <p>
                                 <b>
                                     <lang>是否结束</lang>
@@ -125,24 +146,6 @@ $themeConfig = \Weline\Framework\Manager\ObjectManager::getInstance(\Weline\Back
                                 </foreach>
                             </div>
                             </p>
-                            <p>
-                                <b>
-                                    <lang>创建时间</lang>
-                                </b>
-                                : {{queue.create_time}}<br></p>
-                            <p>
-                                <b>
-                                    <lang>更新时间</lang>
-                                </b>
-                                : {{queue.update_time}}<br></p>
-                            <p>
-                                <b>
-                                    <lang>运行结果</lang>
-                                </b>
-                                : <br></p>
-                            <div class="card-footer">
-                                {{queue.result}}
-                            </div>
                         </div>
                     </div>
                 </div> <!-- end col -->

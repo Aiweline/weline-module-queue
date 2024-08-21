@@ -68,7 +68,7 @@ class Type extends \Weline\Framework\Database\Model
                 ->addColumn(self::fields_ID, TableInterface::column_type_INTEGER, 0, 'primary key auto_increment', 'ID')
                 ->addColumn(self::fields_name, TableInterface::column_type_VARCHAR, 255, 'not null', '队列类型名称')
                 ->addColumn(self::fields_attributes, TableInterface::column_type_TEXT, 0, '', '队列属性码')
-                ->addColumn(self::fields_tip, TableInterface::column_type_TEXT, 1000, 'not null', '提示')
+                ->addColumn(self::fields_tip, TableInterface::column_type_TEXT, 2000, 'not null', '提示')
                 ->addColumn(self::fields_module_name, TableInterface::column_type_VARCHAR, 255, 'not null', '队列所属模块名称')
                 ->addColumn(self::fields_class, TableInterface::column_type_VARCHAR, 128, 'not null unique', '队列类型实现类名')
                 ->addAdditional('ENGINE=MyISAM')
@@ -151,7 +151,7 @@ class Type extends \Weline\Framework\Database\Model
     {
         $type_id = $this->getTypeId();
         /** @var Attributes $typeAttributeModel */
-        $typeAttributeModel = ObjectManager::getInstance(Attributes::class);
+        $typeAttributeModel = ObjectManager::make(Attributes::class);
         return $typeAttributeModel->getAttributesByTypeCode($type_id, $code, $options);
     }
 }

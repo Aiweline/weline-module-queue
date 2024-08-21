@@ -54,7 +54,7 @@ class Queue implements \Weline\Cron\CronTaskInterface
     public function tip(): string
     {
         return <<<QUEUETIP
-定时消费任务，每5秒检测一次消息队列。如果有任务继续执行队列中的任务。
+定时消费任务，每分钟检测一次消息队列。如果有任务继续执行队列中的任务。
 QUEUETIP;
 
     }
@@ -81,9 +81,6 @@ QUEUETIP;
             ->pagination();
         $pages = $this->queue->pagination['lastPage'];
         foreach (range(1, $pages) as $page) {
-            # 进程信息管理
-            $processes = [];
-            $pipes     = [];
             $queues    = $this->queue->reset()->where($this->queue::fields_finished, 0)
                 ->where($this->queue::fields_status, $this->queue::status_done, '!=')
                 ->where($this->queue::fields_status, $this->queue::status_stop, '!=')
@@ -94,70 +91,49 @@ QUEUETIP;
                 ->fetch()
                 ->getItems();
             /**@var \Weline\Queue\Model\Queue $queue */
-            foreach ($queues as $key => &$queue) {
-                $queue_name = 'queue-' . $queue->getName() . '-' . $queue->getId();
-                # 检测程序是否还在运行
-                if ($pid = $queue->getPid()) {
-                    $output = Process::getProcessOutput($queue_name);
-                    if (Process::isProcessRunning($pid)) {
-                        $queue->setResult($output)->save();
-                        continue;
+            foreach ($queues as $key => $queue) {
+                # 队列名
+                $queue_name = Process::initTaskName('queue-' . $queue->getName() . '-' . $queue->getId());
+                # 进程名
+                $process_name = PHP_BINARY . ' bin/m queue:run --id=' . $queue->getId() . ' --name \'' . $queue_name.'\'';
+                # 使用进程名检查该进程是否在运行
+                $pid = Process::getPidByName($process_name);
+                if ($pid) {
+                    $output = Process::getProcessOutput($process_name);
+                    $queue->setResult($output . __('进程已存在，请检查进程状态！进程名：%1', $process_name))
+                        ->setPid($pid)
+                        ->save();
+                    continue;
+                } elseif ($queue->getPid()) {
+                    # -----------没有查到该程序正在运行，数据库又存在PID，说明该任务运行结束-------------
+                    $output = Process::getProcessOutput($process_name);
+                    $queue->setEndAt(date('Y-m-d H:i:s'))
+                        ->setPid(0);
+                    if ($queue->isFinished()) {
+                        $queue->setResult($output . __('队列结束...'))
+                            ->setStatus($queue::status_done)
+                            ->save();
                     } else {
-                        $queue->setPid(0)
-                            ->setEndAt(date('Y-m-d H:i:s'));
-                        if ($queue->isFinished()) {
-                            $queue->setResult($output . __('队列结束...'))
-                                ->setStatus($queue::status_done)
-                                ->save();
-                        } else {
-                            $queue->setStatus($queue::status_error)
-                                ->setResult($output . __('队列进程异常结束...'))
-                                ->save();
-                        }
-                        # 卸载进程记录文件
-                        Process::unsetLogProcessFilePath($queue_name);
+                        $queue->setStatus($queue::status_error)
+                            ->setResult($output . __('队列进程异常结束...'))
+                            ->save();
                     }
+                    # 卸载进程记录文件
+                    Process::unsetLogProcessFilePath($process_name);
                     continue;
                 }
-                $queue->setResult('');
-                $descriptorspec = array(
-                    0 => array('pipe', 'r'),   // 子进程将从此管道读取stdin
-                    1 => array('pipe', 'w'),   // 子进程将向此管道写入stdout
-                    2 => array('pipe', 'w')    // 子进程将向此管道写入stderr
-                );
-                # 创建异步程序
-                $process_log_path = Process::getLogProcessFilePath($queue_name);
-                $command_fix      = !IS_WIN ? ' 2>&1 & echo $!' : '';
-                $process_name     = PHP_BINARY . ' bin/m queue:run --id=' . $queue->getId();
-                $command          = 'cd ' . BP . ' && nohup ' . $process_name . ' > "' . $process_log_path . '" ' . $command_fix;
-                Process::setProcessOutput($queue_name, $command . PHP_EOL);
-                $process = proc_open($command, $descriptorspec, $procPipes);
-                Process::setProcessOutput($queue_name, json_encode($process) . PHP_EOL);
-                # 进程保存到进程数组
-                $processes[$key] = $process;
-                # 设置进程非阻塞
-                stream_set_blocking($procPipes[1], false);
-                $pipes[$key] = $procPipes;
-                if (is_resource($process)) {
-                    $pid = Process::getPidByName($process_name);
-                    if (!$pid) {
-                        $queue->setResult(__('进程创建失败！请检查进程状态！进程名：%1, 执行命令：%2', [$process_name, $command]))
-                            ->setStatus($queue::status_error)
-                            ->save();
-                    } else {
-                        # 记录PID
-                        $queue->setPid($pid)
-                            ->setStatus($queue::status_running)
-                            ->setStartAt(date('Y-m-d H:i:s'))
-                            ->save();
-                    }
-                    // 关闭文件指针
-                    fclose($procPipes[0]);
-                    fclose($procPipes[1]);
-                    fclose($procPipes[2]);
-                } else {
-                    $queue->setResult(__('进程创建失败！请检查进程状态！进程名：%1, 执行命令：%2', [$process_name, $command]))
+                # 创建进程
+                $pid = Process::create($process_name);
+                if (!$pid) {
+                    $queue->setResult(__('进程创建失败！请检查进程状态！进程名：%1', [$process_name]))
+                        ->setStartAt(date('Y-m-d H:i:s'))
                         ->setStatus($queue::status_error)
+                        ->save();
+                } else {
+                    # 记录PID
+                    $queue->setStatus($queue::status_running)
+                        ->setPid($pid)
+                        ->setStartAt(date('Y-m-d H:i:s'))
                         ->save();
                 }
             }

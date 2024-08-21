@@ -153,7 +153,7 @@ $themeConfig = ObjectManager::getInstance(\Weline\Backend\Block\ThemeConfig::cla
                                 <div class='input-group'>
                                     <select id='search-queueData-result'
                                             scope='queue'
-                                            class='form-select form-control rounded' size='10' name='type_id'
+                                            class='form-select form-control rounded' size='30' name='type_id'
                                             data-style='btn-primary' data-width='fit'
                                             aria-label='@lang{搜索【队列类型】结果}'
                                             v-model='params.type_id' aria-describedby='search-addon' required>
@@ -173,6 +173,15 @@ $themeConfig = ObjectManager::getInstance(\Weline\Backend\Block\ThemeConfig::cla
                                 </div>
                             </div>
                         </div>
+                        <!--上一步 下一步 当前没有上一步-->
+                        <div class='row'>
+                            <div class='mx-auto col-lg-6 mt-2 mb-4'>
+                                <button type='button' class='btn btn-outline-primary pull-right'
+                                        @click='changeNav("progress-params")'>
+                                    <lang>下一步</lang>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     <!--参数选择-->
                     <div class='tab-pane' :class="{active:activeName=='progress-params'}">
@@ -190,6 +199,19 @@ $themeConfig = ObjectManager::getInstance(\Weline\Backend\Block\ThemeConfig::cla
                         </div>
                         <div class='row' id="queueParamsForm">
 
+                        </div>
+                        <!--上一步 下一步-->
+                        <div class='row'>
+                            <div class='mx-auto col-lg-6 mt-2 mb-4'>
+                                <button type='button' class='btn btn-outline-primary pull-left'
+                                        @click='changeNav("progress-select-queueData")'>
+                                    <lang>上一步</lang>
+                                </button>
+                                <button type='button' class='btn btn-outline-primary pull-right'
+                                        @click='changeNav("progress-confirm")'>
+                                    <lang>下一步</lang>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <!--确认信息-->
@@ -232,10 +254,19 @@ $themeConfig = ObjectManager::getInstance(\Weline\Backend\Block\ThemeConfig::cla
                             </div>
                             </p>
                         </div>
-                        <div v-if="(activeName=='progress-confirm')">
-                            <button class='btn btn-primary pull-right' @click='submitQueue'>
-                                <lang>提交</lang>
-                            </button>
+                        <!--上一步 下一步-->
+                        <div class='row'>
+                            <div class='mx-auto col-lg-6 mt-2 mb-4'>
+                                <button type='button' class='btn btn-outline-primary pull-left'
+                                        @click='changeNav("progress-params",false)'>
+                                    <lang>上一步</lang>
+                                </button>
+                                <div v-if="(activeName=='progress-confirm')">
+                                    <button class='btn btn-primary pull-right' @click='submitQueue'>
+                                        <lang>提交</lang>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -283,6 +314,7 @@ $themeConfig = ObjectManager::getInstance(\Weline\Backend\Block\ThemeConfig::cla
             queue_types: <?= isset($queue_types) ? json_encode($queue_types) : '[]' ?>,
             typeAttributeParams: [],
             types: <?= isset($types) ? json_encode($types) : '[]' ?>,
+            clickedParamsProcess: false,
         },
         mounted() {
             this.activeName = '{{queueData.progress|"progress-select-queueData"}}';
@@ -306,6 +338,7 @@ $themeConfig = ObjectManager::getInstance(\Weline\Backend\Block\ThemeConfig::cla
             changeTypeTip(t) {
                 this.tip = t.tip
                 this.queueName = t.name
+                this.clickedParamsProcess = false
             },
             // 提交
             submitQueue() {
@@ -400,6 +433,7 @@ $themeConfig = ObjectManager::getInstance(\Weline\Backend\Block\ThemeConfig::cla
 
             /* 队列类型属性搜索渲染 */
             renderSearchQueueTypeAttributes(e) {
+                showLoading()
                 let queue_id = '';
                 if (this.params.id) {
                     queue_id = '&queue_id=' + this.params.id
@@ -431,6 +465,7 @@ ${res['data'][i].html}
                         }
                         queueParamsForm.html(html)
                         this.typeAttributeParams = res['data'];
+                        hideLoading()
                     }
                 })
             },
@@ -458,8 +493,12 @@ ${res['data'][i].html}
                 this.activeAttrItem = find_item;
             },
             changeNav(name, reload = true) {
+                if(this.clickedParamsProcess){
+                    reload = false
+                }
                 this.activeName = name;
                 if (name === 'progress-params' && this.params.type_id !== '' && reload) {
+                    this.clickedParamsProcess = true
                     this.renderSearchQueueTypeAttributes();
                 }
                 if (name === 'progress-confirm') {
@@ -499,9 +538,19 @@ ${res['data'][i].html}
                             }
                         }
                         let model_class_data = item.attr('model_class_data')
-                        let alias = item.val();
                         if (model_class_data) {
                             model_class_data = JSON.parse(model_class_data)
+                        }
+                        // 动态的模型数据应该从选项中拉取
+                        let options = item.find('option')
+                        model_class_data = {}
+                        options.each((index, itemOption) => {
+                            itemOption = $(itemOption)
+                            model_class_data[itemOption.val()] = itemOption.text()
+                        })
+
+                        let alias = item.val();
+                        if (model_class_data) {
                             if (typeof item.val() === 'object') {
                                 alias = '';
                                 item.val().forEach((i) => {

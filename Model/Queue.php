@@ -40,6 +40,7 @@ class Queue extends EavModel
     public const fields_end_at = 'end_at';
     public const fields_result = 'result';
     public const fields_content = 'content';
+    public const fields_process = 'process';
     public const fields_status = 'status';
     public const fields_finished = 'finished';
     public const fields_auto = 'auto';
@@ -51,6 +52,9 @@ class Queue extends EavModel
     public const status_stop = 'stop';
     public const status_error = 'error';
     public const fields_module = 'module';
+
+    public array $_unit_primary_keys = ['queue_id'];
+    public array $_index_sort_keys = ['queue_id', 'type_id', 'finished'];
 
 
     private ?Type $type = null;
@@ -79,6 +83,7 @@ class Queue extends EavModel
                 ->addColumn(self::fields_end_at, TableInterface::column_type_TIMESTAMP, null, '', '结束时间')
                 ->addColumn(self::fields_result, TableInterface::column_type_TEXT, null, '', '结果')
                 ->addColumn(self::fields_content, TableInterface::column_type_TEXT, null, '', '内容')
+                ->addColumn(self::fields_process, TableInterface::column_type_TEXT, null, '', '进度')
                 ->addColumn(self::fields_status, TableInterface::column_type_VARCHAR, 12, "default 'pending'", '状态')
                 ->addColumn(self::fields_finished, TableInterface::column_type_SMALLINT, 1, 'default 0', '是否完成')
                 ->addColumn(self::fields_auto, TableInterface::column_type_SMALLINT, 1, 'default 1', '是否自动')
@@ -181,6 +186,42 @@ class Queue extends EavModel
         return $this->setData(self::fields_content, $content);
     }
 
+    public function setProcess(string $process): static
+    {
+        return $this->setData(self::fields_process, $process);
+    }
+
+    public function getProcess(bool $format = false, bool $isHtml = false)
+    {
+        if ($format) {
+            $processString = '';
+            $process       = $this->getData(self::fields_process);
+            if ($process) {
+                $process = json_decode($process);
+                if (!$process) {
+                    return $this->getData(self::fields_process);
+                }
+                foreach ($process as $key => $item) {
+                    if (is_string($item)) {
+                        $processString .= $key . '、' . $item;
+                    } elseif (is_array($item)) {
+                        $processString .= $key . ':' . ($isHtml ? '<br>' : PHP_EOL);
+                        foreach ($item as $k => $v) {
+                            $k             += 1;
+                            $processString .= '&nbsp;&nbsp;&nbsp;&nbsp;' . $k . '、' . $v.($isHtml ? '<br>' : PHP_EOL);
+                        }
+                    }
+                }
+            }
+            return $processString;
+        }
+        return $this->getData(self::fields_process);
+    }
+
+    public function init()
+    {
+        $this->setProcess('');
+    }
 
     public function setResult(string $result_msg): static
     {
@@ -269,6 +310,7 @@ class Queue extends EavModel
                 'label_class' => 'control-label',
                 'attrs' => ['class' => 'form-control w-100 readonly disabled', 'disabled' => 'disabled'],
                 'entity' => $entity,
+                'eav_entity_id' => $this->getEavEntityId(),
                 'no_html' => 1
             ];
         }
@@ -282,6 +324,7 @@ class Queue extends EavModel
                 'label_class' => 'control-label',
                 'attrs' => ['class' => 'form-control w-100 readonly disabled', 'disabled' => 'disabled'],
                 'entity' => $this,
+                'eav_entity_id' => $this->getEavEntityId(),
                 'no_html' => 1
             ];
         }
@@ -295,6 +338,7 @@ class Queue extends EavModel
                 'label_class' => 'control-label',
                 'attrs' => ['class' => 'form-control w-100 readonly disabled', 'disabled' => 'disabled'],
                 'entity' => $this,
+                'eav_entity_id' => $this->getEavEntityId(),
                 'no_html' => 1
             ];
         }
@@ -304,17 +348,37 @@ class Queue extends EavModel
             /**@var \Weline\Eav\Model\EavAttribute\Type $attrType */
             $attrType        = $attr->getType();
             $eav_model_class = $attrType->getModelClass();
-            /**@var EavModelInterface $eav_model */
-            $eav_model = ObjectManager::make($eav_model_class);
-            $options   = $eav_model->getModelData() ?: $attr->getOptions();
-            $value     = $attr->getValue();
-            $params    = [];
-            if (is_array($value)) {
-                foreach ($value as $i => $v) {
-                    if (isset($options[$v])) {
-                        $params[$v] = [
-                            'value' => $v,
-                            'label' => $options[$v],
+            $value           = $attr->getValue();
+            $options         = $attr->getOptions();
+            if (!empty($eav_model_class)) {
+                /**@var EavModelInterface $eav_model */
+                $eav_model = ObjectManager::make($eav_model_class);
+                $options   = $eav_model->getModelData([
+                    'entity' => &$this,
+                    'value' => $value,
+                    'attribute' => &$attr,
+                    'attributes' => &$attributes,
+                ]) ?: $attr->getOptions();
+                $params    = [];
+                if (is_array($value)) {
+                    foreach ($value as $i => $v) {
+                        if (isset($options[$v])) {
+                            $params[$v] = [
+                                'value' => $v,
+                                'label' => $options[$v],
+                            ];
+                        }
+                    }
+                } else {
+                    if (isset($options[$value])) {
+                        $params[$value] = [
+                            'value' => $value,
+                            'label' => $options[$value],
+                        ];
+                    } else {
+                        $params[$value] = [
+                            'value' => $value,
+                            'label' => $value,
                         ];
                     }
                 }
