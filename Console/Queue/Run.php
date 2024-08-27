@@ -36,13 +36,12 @@ class Run implements \Weline\Framework\Console\CommandInterface
      */
     public function execute(array $args = [], array $data = []): string
     {
-        $id = $args[1] ?? 0;
+        $id = $args['id'] ?? 0;
         if ($id == 0) {
             $this->printing->error(__('请输入队列ID。 '));
             $this->printing->success(__('正确示例：php bin/m queue:run --id=1'));
             exit();
         }
-        $id    = str_replace('--id=', '', $id);
         $queue = $this->queue->load($id);
         if (empty($queue->getId())) {
             $this->printing->error(__('队列不存在。 '));
