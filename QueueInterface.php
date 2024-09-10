@@ -61,7 +61,7 @@ interface QueueInterface
     public function execute(Queue &$queue): string;
 
     /**
-     * @DESC          # 验证数据结构是否正确
+     * @DESC          # 验证数据结构是否正确 【只需要设置队列的Result验证结果即可：示例$queue->setResult('验证失败！');】
      *
      * @AUTH  秋枫雁飞
      * @EMAIL aiweline@qq.com

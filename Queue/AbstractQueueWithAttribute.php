@@ -583,8 +583,7 @@ abstract class AbstractQueueWithAttribute extends DataObject implements QueueInt
         $this->queue = $queue;
         # 自带属性检测 如果有属性类型是 op_select_site 和 op_select_sites 则根据类型必填性检测值
         $options_data = [
-            'entity' => $queue,
-            'no_html' => 1
+            'entity' => $queue
         ];
         $attributes   = $queue->getAttributes($options_data);
         $data         = [];
@@ -594,7 +593,7 @@ abstract class AbstractQueueWithAttribute extends DataObject implements QueueInt
         foreach ($attributes as $attribute) {
             $res = $queue->validateAttribute($attribute);
             if (is_string($res)) {
-                $queue->setResult($res)->save();
+                $queue->setResult($res);
                 return false;
             }
             $type = $attribute->getType();
@@ -607,7 +606,7 @@ abstract class AbstractQueueWithAttribute extends DataObject implements QueueInt
                     $site = $this->getSite((int)$siteId);
                     if (empty($site)) {
                         $msg = __('属性【%1】所指向的站点ID %2 不存在！', [$attribute->getName(), $siteId]);
-                        $queue->setResult($msg)->save();
+                        $queue->setResult($msg);
                         return false;
                     }
                 }
