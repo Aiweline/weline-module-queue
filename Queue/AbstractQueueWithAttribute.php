@@ -315,7 +315,8 @@ abstract class AbstractQueueWithAttribute extends DataObject implements QueueInt
     public function getItem(string|array $current_item, array $merge = []): array
     {
         if (is_string($current_item)) {
-            $this->current_item = [$this->item_id => $current_item, 'ok' => 0];
+            $item = [$this->item_id => $current_item, 'ok' => 0];
+            $this->current_item = &$item;
         } elseif (is_array($current_item)) {
             if (!isset($current_item[$this->item_id])) {
                 throw new \Exception('$current_item 必须包含 ' . $this->item_id);
@@ -323,7 +324,7 @@ abstract class AbstractQueueWithAttribute extends DataObject implements QueueInt
             if (!isset($current_item['ok'])) {
                 $current_item['ok'] = 0;
             }
-            $this->current_item = $current_item;
+            $this->current_item = &$current_item;
         }
         if ($merge) {
             $current_item = array_merge($this->current_item, $merge);
@@ -354,8 +355,8 @@ abstract class AbstractQueueWithAttribute extends DataObject implements QueueInt
     {
         $this->processFatalError();
         $current_item['msg'] = $msg;
-        $this->current_index = $current_index;
-        $this->current_item = $current_item;
+        $this->current_index = &$current_index;
+        $this->current_item = &$current_item;
         $this->percent       = $this->validate_total ? (float)(number_format($this->current_index / $this->validate_total, 4)) * 100 : 0;
         $output              = '[[' . __('成功:%1 ,失败：%2 ,' . $processMsg . ':%3 ',
                 [count($this->success_data), count($this->error_data), json_encode($current_item)]) . ']]';
