@@ -334,7 +334,7 @@ abstract class AbstractQueueWithAttribute extends DataObject implements QueueInt
         return $this->current_item;
     }
 
-    function processing(array &$current_item, int $current_index, string $msg = ''): self
+    function processing(array|string &$current_item, int $current_index, string $msg = ''): self
     {
         $current_item = $this->getItem($current_item);
         return $this->process($current_item, $current_index, $msg, '正在处理');
