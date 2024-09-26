@@ -141,12 +141,15 @@ abstract class AbstractQueueWithAttribute extends DataObject implements QueueInt
         if ($append) {
             $msg = $this->queue->getResult() . PHP_EOL . $msg;
         }
-        if (empty($this->current_item[$this->item_id])) {
-            $msg                  .= 'current_item[' . $this->item_id . '] is null';
-            $this->fatal_errors[] = $msg;
-        } else {
-            $this->setProcessMsg('id', $this->current_item[$this->item_id]);
+        if($this->current_item){
+            if (empty($this->current_item[$this->item_id])) {
+                $msg                  .= 'current_item[' . $this->item_id . '] is null';
+                $this->fatal_errors[] = $msg;
+            } else {
+                $this->setProcessMsg('id', $this->current_item[$this->item_id]);
+            }
         }
+
         $this->queue->setResult($msg)->save();
         try {
             /** @var Task $task */
@@ -342,6 +345,9 @@ abstract class AbstractQueueWithAttribute extends DataObject implements QueueInt
 
     function processed(bool $success = true, string $msg = ''): self
     {
+        if(!$this->current_item){
+            return $this;
+        }
         if ($this->current_item['ok'] || $success) {
             $this->current_item['ok'] = 1;
             $this->success_data[$this->current_item[$this->item_id]] = $this->current_item;
