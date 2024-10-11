@@ -85,18 +85,19 @@ abstract class AbstractQueue extends DataObject implements QueueInterface
         }
         $this->total          = $total;
         $this->validate_total = $total;
+        $this->queue_result((string)$total, __('总计'));
         return $this;
     }
 
     final protected function queue_validate_total(int $total = 0): self|int
     {
         if ($this->display) {
-            $this->printing->note(__('队列数据总数(有效)：%1', [$total]));
+            $this->printing->note(__('有效：%1', [$total]));
         }
         if ($total == 0) {
             return $this->validate_total;
         }
-        $this->queue_result((string)$total, '队列数据总数(有效)');
+        $this->queue_result((string)$total, '有效');
         $this->validate_total = $total;
         return $this;
     }
@@ -199,6 +200,7 @@ abstract class AbstractQueue extends DataObject implements QueueInterface
         if ($this->display) {
             $this->printing->success(__('致命错误: %s', [$msg]));
         }
+        $this->queue_result($msg);
         $this->queue->setStatus($this->queue::status_error)->save();
         throw new \Exception($this->queue->getResult());
     }
@@ -266,7 +268,8 @@ abstract class AbstractQueue extends DataObject implements QueueInterface
                 $cellName        = $sheet->getCellByColumnAndRow($coordinateIndex, 1)->getCoordinate();
                 $sheet->setCellValue($cellName, $title);
             }
-            foreach ($status as $row => $item) {
+            $row = 0;
+            foreach ($status as $itemKey => $item) {
                 $row          += 1;
                 $column_index = 0;
                 if (is_array($item)) {
