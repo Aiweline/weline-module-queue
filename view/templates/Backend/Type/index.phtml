@@ -101,6 +101,7 @@ $themeConfig = \Weline\Framework\Manager\ObjectManager::getInstance(\Weline\Back
                                                 <th data-priority='1'><?= __('名称') ?></th>
                                                 <th data-priority='1'><?= __('模组') ?></th>
                                                 <th data-priority='1'><?= __('执行类') ?></th>
+                                                <th data-priority='1'><?= __('启用') ?></th>
                                                 <th data-priority='3'><?= __('创建时间') ?></th>
                                                 <th data-priority='3'><?= __('更新时间') ?></th>
                                             </tr>
@@ -112,6 +113,50 @@ $themeConfig = \Weline\Framework\Manager\ObjectManager::getInstance(\Weline\Back
                                                     <td class='co-name'>{{type.name}}</td>
                                                     <td class='co-name'>{{type.module_name}}</td>
                                                     <td class='co-name'>{{type.class}}</td>
+                                                    <td class='co-name'>
+                                                        <if condition="type.enable == 1">
+                                                            <span class="text-success mr-2"><lang>是</lang></span>
+                                                            <block class='Weline\Component\Block\OffCanvas'
+                                                                   template='Weline_Component::off-canvas.phtml'
+                                                                   title='禁用'
+                                                                   cache='0'
+                                                                   id='create_queue_off_canvas_new'
+                                                                   action='*/backend/type/disable'
+                                                                   vars="type"
+                                                                   action-params="{id:type.type_id}"
+                                                                   target-tag='button'
+                                                                   target-button-text='禁用'
+                                                                   target-button-class='btn btn-danger'
+                                                                   flush='0'
+                                                                   save='0'
+                                                                   close-button-show='1'
+                                                                   close-button-text='关闭'
+                                                                   direction='right'
+                                                                   class-names='w-75'
+                                                                   off-canvas-body-style=''
+                                                            /><else/>
+                                                            <span class='text-danger mr-2'><lang>否</lang></span>
+                                                            <block class='Weline\Component\Block\OffCanvas'
+                                                                   template='Weline_Component::off-canvas.phtml'
+                                                                   title='启用'
+                                                                   cache='0'
+                                                                   id='create_queue_off_canvas_new'
+                                                                   action='*/backend/type/enable'
+                                                                   vars='type'
+                                                                   action-params='{id:type.type_id}'
+                                                                   target-tag='button'
+                                                                   target-button-text='启用'
+                                                                   target-button-class='btn btn-success'
+                                                                   flush='0'
+                                                                   save='0'
+                                                                   close-button-show='1'
+                                                                   close-button-text='关闭'
+                                                                   direction='right'
+                                                                   class-names='w-75'
+                                                                   off-canvas-body-style=''
+                                                            />
+                                                        </if>
+                                                    </td>
                                                     <td class='co-name'>{{type.create_time}}</td>
                                                     <td class='co-name'>{{type.update_time}}</td>
                                                 </tr>

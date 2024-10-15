@@ -72,7 +72,7 @@ QUEUETIP;
      */
     public function execute(): string
     {
-        $pageSize = 1;
+        $pageSize = 2;
         $this->queue->reset()->where($this->queue::fields_finished, 0)
             ->where($this->queue::fields_auto, 1)
             ->where($this->queue::fields_status, $this->queue::status_done, '!=')
@@ -81,7 +81,7 @@ QUEUETIP;
             ->pagination();
         $pages = $this->queue->pagination['lastPage'];
         foreach (range(1, $pages) as $page) {
-            $queues    = $this->queue->reset()->where($this->queue::fields_finished, 0)
+            $queues = $this->queue->reset()->where($this->queue::fields_finished, 0)
                 ->where($this->queue::fields_status, $this->queue::status_done, '!=')
                 ->where($this->queue::fields_status, $this->queue::status_stop, '!=')
                 ->where($this->queue::fields_status, $this->queue::status_error, '!=')
@@ -95,12 +95,13 @@ QUEUETIP;
                 # 队列名
                 $queue_name = Process::initTaskName('queue-' . $queue->getName() . '-' . $queue->getId());
                 # 进程名
-                $process_name = PHP_BINARY . ' bin/m queue:run --id=' . $queue->getId() . ' --name \'' . $queue_name.'\'';
+                $process_name = PHP_BINARY . ' bin/m queue:run --id=' . $queue->getId() . ' --name \'' . $queue_name . '\'';
                 # 使用进程名检查该进程是否在运行
                 $pid = Process::getPidByName($process_name);
+                $result = $queue->getResult();
                 if ($pid) {
                     $output = Process::getProcessOutput($process_name);
-                    $queue->setResult($output . __('进程已存在，请检查进程状态！进程名：%1', $process_name))
+                    $queue->setResult($output . __('进程已存在，请检查进程状态！进程名：%1', $process_name).$result)
                         ->setPid($pid)
                         ->save();
                     continue;
@@ -110,12 +111,12 @@ QUEUETIP;
                     $queue->setEndAt(date('Y-m-d H:i:s'))
                         ->setPid(0);
                     if ($queue->isFinished()) {
-                        $queue->setResult($output . __('队列结束...'))
+                        $queue->setResult( PHP_EOL . $output . __('队列结束...').$result)
                             ->setStatus($queue::status_done)
                             ->save();
                     } else {
                         $queue->setStatus($queue::status_error)
-                            ->setResult($output . __('队列进程异常结束...'))
+                            ->setResult( PHP_EOL . $output . __('队列进程异常结束...').$result)
                             ->save();
                     }
                     # 卸载进程记录文件

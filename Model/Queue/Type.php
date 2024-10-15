@@ -29,6 +29,7 @@ class Type extends \Weline\Framework\Database\Model
     public const fields_module_name = 'module_name';
     public const fields_class = 'class';
     public const fields_attributes = 'attributes';
+    public const fields_enable = 'enable';
 
     /**
      * @inheritDoc
@@ -71,6 +72,7 @@ class Type extends \Weline\Framework\Database\Model
                 ->addColumn(self::fields_tip, TableInterface::column_type_TEXT, 2000, 'not null', '提示')
                 ->addColumn(self::fields_module_name, TableInterface::column_type_VARCHAR, 255, 'not null', '队列所属模块名称')
                 ->addColumn(self::fields_class, TableInterface::column_type_VARCHAR, 128, 'not null unique', '队列类型实现类名')
+                ->addColumn(self::fields_enable, TableInterface::column_type_SMALLINT, 1, 'not null default 1', '是否启用')
                 ->addAdditional('ENGINE=MyISAM')
                 ->create();
         }
@@ -90,6 +92,18 @@ class Type extends \Weline\Framework\Database\Model
     public function getName(): string
     {
         return $this->getData(self::fields_name);
+    }
+
+
+    public function getEnable(): bool
+    {
+        return (bool)$this->getData(self::fields_enable);
+    }
+
+
+    public function setEnable(bool $enable): static
+    {
+        return $this->setData(self::fields_enable, $enable);
     }
 
 

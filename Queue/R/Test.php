@@ -13,10 +13,11 @@ declare(strict_types=1);
 
 namespace Weline\Queue\Queue\R;
 
+use Aiweline\DataPublication\Queue\AbstractQueue;
 use Weline\Queue\Model\Queue;
 use Weline\Queue\QueueInterface;
 
-class Test implements QueueInterface
+class Test extends AbstractQueue
 {
     public function name(): string
     {

@@ -45,7 +45,7 @@ class Run implements \Weline\Framework\Console\CommandInterface
         $queue = $this->queue->load($id);
         if (empty($queue->getId())) {
             $this->printing->error(__('队列不存在。 '));
-            $this->printing->success(__('正确示例：php bin/m queue:run --id=%1',$id));
+            $this->printing->success(__('正确示例：php bin/m queue:run --id=%1', $id));
             exit();
         }
 
@@ -56,25 +56,25 @@ class Run implements \Weline\Framework\Console\CommandInterface
         $validate_result = $queue_execute->vaLidate($queue);
         if (is_bool($validate_result) and $validate_result) {
             $queue->setStatus($queue::status_running)
-                ->setResult(__('正在执行...'))
+                ->setResult($queue->getResult() . PHP_EOL . __('正在执行...'))
                 ->save();
             try {
                 $result = $queue_execute->execute($queue);
                 $queue->setStatus($queue::status_done)
-                    ->setResult($result)
+                    ->setResult($queue->getResult() . PHP_EOL . $result)
                     ->save();
             } catch (\Throwable $e) {
                 $result = $e->getMessage();
                 $queue->setStatus($queue::status_error)
-                    ->setResult($result)
+                    ->setResult($queue->getResult() . PHP_EOL . $result)
                     ->save();
                 throw $e;
             }
         } else {
-            $result = __('队列消息内容验证不通过。') . ($validate_result ? __('验证结果：') . $queue->getResult() : '');
+            $result = __('队列消息内容验证不通过。') . ($validate_result ? __('验证结果：') : '');
             $this->printing->error($result);
             $queue->setStatus($queue::status_error)
-                ->setResult($result)
+                ->setResult($result . PHP_EOL . $queue->getResult())
                 ->save();
         }
         return $result;

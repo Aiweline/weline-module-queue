@@ -52,7 +52,8 @@ class Queue extends \Weline\Framework\App\Controller\BackendController
         if ($id = $this->request->getGet('id')) {
             $this->queue->where('main_table.' . $this->queue::fields_ID, $id);
         }
-        $this->queue->order('main_table.queue_id');
+        $this->queue->where('t.enable',1)
+            ->order('main_table.queue_id');
 //        $this->queue->additional('order by CASE status WHEN \'' . \Weline\Queue\Model\Queue::status_running . '\' THEN 0 WHEN \'' . \Weline\Queue\Model\Queue::status_pending . '\' THEN 1 WHEN \'' . \Weline\Queue\Model\Queue::status_done . '\' THEN 2  WHEN \'' . \Weline\Queue\Model\Queue::status_error . '\' THEN  3 END ASC,main_table.update_time DESC');
         $this->queue->pagination()->select()->fetch();
         $this->assign('queues', $this->queue->getItems());
@@ -93,7 +94,7 @@ class Queue extends \Weline\Framework\App\Controller\BackendController
                 $dir = str_replace('\\', '\\\\', ucfirst($dir));
                 $this->type->where('class', '%' . $dir . '%', 'like');
             }
-            $types = $this->type->select()->fetchOrigin();
+            $types = $this->type->where('enable', 1)->select()->fetchOrigin();
             foreach ($types as &$type_) {
                 $type_['tip'] = $type_['tip'] . '<hr><br><span class="text-primary">' . __('执行类：') . $type_['class'] . '</span>';
             }
@@ -241,6 +242,7 @@ class Queue extends \Weline\Framework\App\Controller\BackendController
         if ($module) {
             $typeModel->where('module_name', $module);
         }
+        $typeModel->where('enable', 1);
         if ($dir) {
             $dir = str_replace('\\', '\\\\', $dir);
             $typeModel->where('class', '%' . ucfirst($dir) . '%', 'like');

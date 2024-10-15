@@ -43,7 +43,6 @@ class Helper
                 } catch (\Exception $e) {
                     continue;
                 }
-
                 $type->reset()->where(Type::fields_class, $queue::class)
                     ->find()
                     ->fetch();
@@ -56,6 +55,7 @@ class Helper
                         Type::fields_module_name => $module['name'],
                         Type::fields_tip => $queue->tip(),
                         Type::fields_class => $queue::class,
+                        Type::fields_enable => method_exists($queue, 'enable') ? $queue->enable() : true
                     ])
                         ->fetch();
                 } else {
@@ -65,18 +65,13 @@ class Helper
                         Type::fields_module_name => $module['name'],
                         Type::fields_tip => $queue->tip(),
                         Type::fields_class => $queue::class,
-                        Type::fields_attributes => ''
+                        Type::fields_attributes => '',
+                        Type::fields_enable => method_exists($queue, 'enable') ? $queue->enable() : true
                     ])->save(true);
                 }
                 # 属性更新
                 /** @var \Weline\Eav\Model\EavAttribute[] $attrs */
                 $attrs = $queue->attributes();
-//                if($queue_class == 'Kte\Pim\Queue\Description\SameLanguageData'){
-//                    foreach ($attrs as $attr) {
-//                        d($attr->getName());
-//                    }
-//                    dd('$attrs');
-//                }
                 foreach ($attrs as $attr) {
                     if (!($attr instanceof \Weline\Eav\Model\EavAttribute)) {
                         throw new \Exception(__('队列类：%1 属性错误。 队列属性必须继承自 %2', [

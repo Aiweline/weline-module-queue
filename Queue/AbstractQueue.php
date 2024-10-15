@@ -25,10 +25,12 @@ use Weline\Queue\QueueInterface;
 abstract class AbstractQueue extends DataObject implements QueueInterface
 {
     public array $status = [];
+    public array $queue_values = [];
     public int $total = 0;
     public string $item_id = 'spu';
-    public bool $display = true;
+    public bool $display = false;
     public int $validate_total = 0;
+    public int $processed_total = 0;
     protected array $current_item = [];
     protected int $current_index = 1;
 
@@ -43,34 +45,54 @@ abstract class AbstractQueue extends DataObject implements QueueInterface
         $this->printing = ObjectManager::getInstance(Printing::class);
     }
 
+    public static function enable(): bool
+    {
+        return true;
+    }
+
     final function init(Queue &$queue, string $item_id = 'spu', bool $display = true): self
     {
         $this->queue = &$queue;
         $this->queue->init();
         $this->setData($queue->getData());
-        $this->item_id = $item_id;
-        $this->display = $display;
+        $this->item_id      = $item_id;
+        $this->display      = ($display and CLI);
+        $this->queue_values = [];
         $this->queue->setProcess('')
-            ->setResult('运行中...')
-            ->save();
+            ->setResult('运行中...');
         if ($this->display) {
             $this->printing->printing($this->printing->colorize($queue->getName(), 'green') . $this->printing->colorize('初始化...', 'blue'));
         }
         return $this;
     }
 
-    final public function queue_values(Queue &$queue)
+    final public function queue_values(string $code = ''): mixed
     {
-        if ($this->display) {
-            $this->printing->note(str_pad('-', 45) . '--属性初始化--' . str_pad('-', 45));
+        if (empty($this->queue_values) and $this->display) {
+            $this->printing->note(str_pad('-', 45) . '--属性初始化 开始--' . str_pad('-', 45));
+        }
+        if ($this->queue_values) {
+            if ($code) {
+                return $this->queue_values[$code] ?? null;
+            } else {
+                return $this->queue_values;
+            }
         }
         $values = [];
-        foreach ($queue->getAttributes() as $attribute) {
+        foreach ($this->queue->getAttributes() as $attribute) {
             $values[$attribute->getCode()] = $attribute->getValue();
             if ($this->display) {
                 $this->printing->success(
                     __('%1(%2): %3', [$attribute->getName(), $attribute->getCode(), $attribute->getValue()]));
             }
+        }
+        if (empty($this->queue_values) and $this->display) {
+            $this->printing->note(str_pad('-', 45) . '--属性初始化 结束--' . str_pad('-', 45));
+        }
+        $this->queue_values = $values;
+
+        if ($code) {
+            return $values[$code] ?? null;
         }
         return $values;
     }
@@ -118,22 +140,39 @@ abstract class AbstractQueue extends DataObject implements QueueInterface
      * @return self
      * @throws \Weline\Framework\Database\Exception\ModelException
      */
-    final protected function queue_process(): self
+    final protected function queue_process(int $processed_total = 0): self
     {
-        $sucess = $this->queue_status_total('success');
-        $errors = $this->queue_status_total('error');
+        $sucess    = $this->queue_status_total('success');
+        $errors    = $this->queue_status_total('error');
         $processed = $this->queue_status_total('processed');
-
-        $percent = round(($processed / $this->total) * 100, 2);
-        $msg    = __('总计: %1 条,有效: %2 条,成功: %3 条,失败: %4 条 当前：%5（%6）进度：%7%',
-            [
-                $this->total,
-                $this->validate_total,
-                $sucess, $errors,
-                $this->current_item[$this->item_id] ?? '',
-                $processed.'/'.$this->total,
-                $percent
+        if ($processed_total) {
+            $this->processed_total = $processed_total;
+            $processed             = $this->total - $this->validate_total + $processed_total;
+        }
+        if ($sucess == 0) {
+            $sucess = $processed_total;
+        }
+        if ($this->total == 0) {
+            $percent = 100;
+            $msg     = __('无条目数据！');
+        } else {
+            $percent = round(($processed / $this->total) * 100, 2);
+            $msg     = __('总计: %1 条,有效: %2 条,成功: %3 条,失败: %4 条 当前(%5)：%6（%7）进度：%8%',
+                [
+                    $this->total,
+                    $this->validate_total,
+                    $sucess, $errors,
+                    $this->item_id,
+                    $this->current_item[$this->item_id] ?? '',
+                    $processed . '/' . $this->total,
+                    $percent
                 ]);
+        }
+        foreach ($this->status as $statusKey => $status) {
+            if (is_array($status)) {
+                $msg .= ' ' . $statusKey . ': ' . count($status) . ' ';
+            }
+        }
         $this->queue->setProcess($msg);
         if ($this->display) {
             $this->printing->success($msg);
@@ -171,7 +210,19 @@ abstract class AbstractQueue extends DataObject implements QueueInterface
     final protected function queue_update(string $msg = ''): self
     {
         if ($this->display) {
-            $this->printing->success(__('更新进度: %1', ($this->queue_status_total('processed') / $this->total) * 100 . '%'));
+            if ($this->total == 0) {
+                $rate = 100;
+            } else {
+                if ($this->processed_total) {
+                    $processed = $this->total - $this->validate_total + $this->processed_total;
+                } else {
+                    $processed = $this->queue_status_total('processed');
+                }
+                $rate = ($processed / $this->total) * 100;
+            }
+            # 保留两位小数
+            $rate = number_format($rate, 2, '.', '');
+            $this->printing->success(__('更新进度: %1', $rate . '%'));
         }
         if ($msg) {
             $this->queue_result($msg);
@@ -182,15 +233,66 @@ abstract class AbstractQueue extends DataObject implements QueueInterface
 
     final protected function queue_error(string $msg = '', string $key = 'error', bool $append_to_result = false): self
     {
-        if ($this->display) {
+        if ($key == 'error' and $append_to_result) {
+            $this->queue->setStatus($this->queue::status_error);
+        }
+        return $this->queue_status($key, $msg, $append_to_result);
+    }
+
+    final protected function queue_error_result(string $msg = ''): self
+    {
+        return $this->queue_status('error', $msg, true);
+    }
+
+    final protected function queue_status(string $key = 'status', string|array $msg = '', bool $append_to_result = false): self
+    {
+        if ($this->display and $this->total) {
             $rate = ($this->queue_status_total('processed') / $this->total) * 100;
             # 保留两位小数
             $rate = number_format($rate, 2, '.', '');
             $this->printing->success(__('更新进度: %1', $rate . '%'));
         }
-        $this->status[$key][] = $msg;
+        if (is_array($msg)) {
+            $this->status[$key][] = $msg;
+        } else {
+            $this->status[$key][] = $msg;
+        }
         if ($append_to_result and $msg) {
-            $this->queue_result($key . ':' . $msg);
+            $this->queue_result($msg, $key);
+        }
+        return $this;
+    }
+
+    final protected function queue_file(string $attribute_code = 'file'): bool|string
+    {
+        $file = $this->queue_values($attribute_code);
+        if (empty($file)) {
+            return false;
+        }
+        $file = PUB . 'media' . DS . $file;
+        if (!is_file($file)) {
+            return false;
+        }
+        return $file;
+    }
+
+    final protected function queue_status_item(string $key = 'status', string|array $msg_or_items = '', bool $append_to_result = false): self
+    {
+        if ($this->display) {
+            if($this->total){
+                $rate = ($this->queue_status_total('processed') / $this->total) * 100;
+                # 保留两位小数
+                $rate = number_format($rate, 2, '.', '');
+                $this->printing->success(__('更新进度: %1', $rate . '%'));
+            }
+        }
+        if (is_array($msg_or_items)) {
+            $this->status[$key] = $msg_or_items;
+        } else {
+            $this->status[$key][] = $msg_or_items;
+        }
+        if ($append_to_result and $msg_or_items) {
+            $this->queue_result($msg_or_items, $key);
         }
         return $this;
     }
@@ -213,9 +315,8 @@ abstract class AbstractQueue extends DataObject implements QueueInterface
         if (isset($status['success'])) {
             $this->status['success'] = $status['success'];
         }
-        $this->queue->setFinished(true)
-            ->setStatus($this->queue::status_done);
-        $this->status['finished'] = true;
+        $this->queue->setFinished(true);
+        $this->status[__('状态')] = __('已完成');
         $this->queue_output();
         $this->queue_update();
         if ($this->display) {
@@ -245,21 +346,24 @@ abstract class AbstractQueue extends DataObject implements QueueInterface
         $success_spreadsheet = new Spreadsheet();
         # region 生成成功结果文件
         foreach ($this->status as $status_key => $status) {
-            $success_spreadsheet->removeSheetByIndex(0);
             # 非数组内容直接输入到result
             if (!is_array($status)) {
-                $this->queue_result((string)$status, $status_key);
+                $this->queue_result((string)$status, (string)$status_key);
                 continue;
             }
             # 写入excel 文件
+            $success_spreadsheet->removeSheetByIndex(0);
             $save_dir = PUB . 'media' . DS . 'cron' . DS . 'export' . DS . 'queue' . DS;
             if (!is_dir($save_dir)) {
                 mkdir($save_dir, 0777, true);
             }
-            $sheetName = $status_key;
-            $sheet     = $success_spreadsheet->createSheet();
-            if (isset($status[0]) and is_array($status[0])) {
-                $titles = array_keys($status[0]);
+            $sheetName       = $status_key;
+            $sheet           = $success_spreadsheet->createSheet();
+            $titles          = [];
+            $array_first_key = array_keys($status)[0];
+            $first           = $status[$array_first_key];
+            if (isset($first) and is_array($first)) {
+                $titles = array_keys($first);
             } else {
                 $titles[] = __('消息');
             }
@@ -268,7 +372,7 @@ abstract class AbstractQueue extends DataObject implements QueueInterface
                 $cellName        = $sheet->getCellByColumnAndRow($coordinateIndex, 1)->getCoordinate();
                 $sheet->setCellValue($cellName, $title);
             }
-            $row = 0;
+            $row = 1;
             foreach ($status as $itemKey => $item) {
                 $row          += 1;
                 $column_index = 0;
@@ -352,35 +456,47 @@ abstract class AbstractQueue extends DataObject implements QueueInterface
         if ($this->current_item) {
             $this->status['processed'][] = &$this->current_item;
         }
-        $this->queue_process();
         return $this;
     }
 
-    final protected function item_success(string $msg = ''): self
+    final protected function item_success(string $msg = '', string $key = 'success'): self
     {
         if ($this->current_item) {
             $this->current_item['ok'] = 1;
-            if (isset($this->current_item['error'][$this->current_item[$this->item_id]])) {
-                $this->current_item['msg'][$this->current_item[$this->item_id]] = $this->current_item['msg'][$this->current_item[$this->item_id]] . PHP_EOL . $msg;
+            if (isset($this->current_item['msg']) and $msg) {
+                $this->current_item['msg'] = $this->current_item['msg'] . PHP_EOL . $msg;
             } else {
-                $this->current_item['msg'][$this->current_item[$this->item_id]] = $msg;
+                $this->current_item['msg'] = $msg;
             }
-            $this->status['sucess'][$this->current_item[$this->item_id]] = $this->current_item;
+            $this->status[$key][$this->current_item[$this->item_id]] = $this->current_item;
         }
         return $this;
     }
 
-    final protected function item_error(string $msg = ''): self
+    final protected function item_exist(string|array $current_item): bool
     {
         if ($this->current_item) {
-            $this->current_item['ok'] = 0;
-            if (isset($this->current_item['msg'][$this->current_item[$this->item_id]])) {
-                $this->current_item['msg'][$this->current_item[$this->item_id]] = $this->current_item['msg'][$this->current_item[$this->item_id]] . PHP_EOL . $msg;
-            } else {
-                $this->current_item['msg'][$this->current_item[$this->item_id]] = $msg;
+            if (is_string($current_item)) {
+                return isset($this->current_item[$current_item]);
+            } elseif (is_array($current_item)) {
+                return isset($this->current_item[$current_item[$this->item_id]]);
             }
-            $this->status['error'][$this->current_item[$this->item_id]] = $this->current_item;
         }
+        return false;
+    }
+
+    final protected function item_error(string $msg = '', string $key = 'error'): self
+    {
+        if ($this->current_item) {
+            $this->current_item['ok'] = -1;
+            if (isset($this->current_item['msg']) and $msg) {
+                $this->current_item['msg'] = $this->current_item['msg'] . PHP_EOL . $msg;
+            } else {
+                $this->current_item['msg'] = $msg;
+            }
+            $this->status[$key][$this->current_item[$this->item_id]] = $this->current_item;
+        }
+        $this->queue_process();
         return $this;
     }
 

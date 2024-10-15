@@ -15,7 +15,7 @@ namespace Weline\Queue\Queue;
 
 use Weline\Queue\Model\Queue;
 
-class Test implements \Weline\Queue\QueueInterface
+class Test extends AbstractQueue
 {
     public function name(): string
     {
