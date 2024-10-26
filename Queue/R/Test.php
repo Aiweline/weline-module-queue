@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace Weline\Queue\Queue\R;
 
-use Aiweline\DataPublication\Queue\AbstractQueue;
 use Weline\Queue\Model\Queue;
+use Weline\Queue\Queue\AbstractQueue;
 use Weline\Queue\QueueInterface;
 
 class Test extends AbstractQueue
