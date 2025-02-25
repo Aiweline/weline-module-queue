@@ -12,18 +12,14 @@ declare(strict_types=1);
 
 namespace Weline\Queue\Queue;
 
-use Aiweline\DataPublication\Cache\PubCache;
-use Aiweline\DataPublication\Model\Upload\Log;
-use Aiweline\WebsiteManager\Model\Site;
-use Kte\Pim\Model\Pim\Task;
 use PhpOffice\PhpSpreadsheet\Exception;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use Weline\Framework\Database\Api\Connection\QueryInterface;
 use Weline\Framework\Database\Exception\ModelException;
 use Weline\Framework\DataObject\DataObject;
 use Weline\Framework\Manager\ObjectManager;
+use Weline\Queue\Cache\QueueCache;
 use Weline\Queue\Model\Queue;
 use Weline\Queue\QueueInterface;
 
@@ -33,7 +29,6 @@ abstract class AbstractQueueWithAttribute extends DataObject implements QueueInt
     public array $error_data = [];
     public array $success_data = [];
     public array $additional_error_data = [];
-    public Site $site;
     public array $sites;
     public int $total = 0;
     public string $taskClass = '';
@@ -46,16 +41,13 @@ abstract class AbstractQueueWithAttribute extends DataObject implements QueueInt
     protected array $current_item = [];
     protected int $current_index = 1;
     protected \Weline\Framework\Cache\CacheInterface $cache;
-    protected \Aiweline\Opencart\Helper\Oss $oss;
     protected array $fatal_errors = [];
     protected array $normal_errors = [];
 
-    public function __construct(Site $site, PubCache $cache, \Aiweline\Opencart\Helper\Oss $oss)
+    public function __construct(private QueueCache $queue_cache)
     {
-        $this->cache = $cache->create();
+        $this->cache = $queue_cache->create();
         $this->cache->setStatus(true);
-        $this->site = $site;
-        $this->oss  = $oss;
     }
 
     function setTitles(array $titles): self
@@ -559,31 +551,6 @@ abstract class AbstractQueueWithAttribute extends DataObject implements QueueInt
         return $result;
     }
 
-    /**
-     * @DESC          # 方法描述
-     *
-     * @AUTH  秋枫雁飞
-     * @EMAIL aiweline@qq.com
-     * @DateTime: 30/8/2023 下午1:57
-     * 参数区：
-     * @param Log $log
-     * @param string $site_type [from/to]
-     * @return mixed|\Weline\Framework\Database\AbstractModel|QueryInterface|null
-     */
-    public function getSite(int $site_id): Site|null
-    {
-        if (isset($this->sites[$site_id])) {
-            return $this->sites[$site_id];
-        }
-        // 获取网站
-        $site = $this->site->reset()->load($site_id);
-        if (!$site->getId()) {
-            return null;
-        }
-        $this->sites[$site_id] = $site;
-        return $site;
-    }
-
 
     public function validate(Queue &$queue): bool
     {
@@ -602,21 +569,6 @@ abstract class AbstractQueueWithAttribute extends DataObject implements QueueInt
             if (is_string($res)) {
                 $queue->setResult($res);
                 return false;
-            }
-            $type = $attribute->getType();
-            if ($type->getCode() == 'op_select_site' || $type->getCode() == 'op_select_sites') {
-                $site_ids = $attribute->getValue();
-                if (is_string($site_ids) || is_int($site_ids)) {
-                    $site_ids = [$site_ids];
-                }
-                foreach ($site_ids as $siteId) {
-                    $site = $this->getSite((int)$siteId);
-                    if (empty($site)) {
-                        $msg = __('属性【%1】所指向的站点ID %2 不存在！', [$attribute->getName(), $siteId]);
-                        $queue->setResult($msg);
-                        return false;
-                    }
-                }
             }
         }
         return true;
@@ -662,30 +614,6 @@ abstract class AbstractQueueWithAttribute extends DataObject implements QueueInt
             }
         }
         return $data;
-    }
-
-    public static function getQuery(Site $site): QueryInterface
-    {
-        try {
-            return $site->getDatabase();
-        } catch (\Exception $e) {
-            dd($e->getMessage());
-        }
-    }
-
-    public function getTask(): object
-    {
-        if ($this->task) {
-            return $this->task;
-        }
-        try {
-            /**@var Task $task */
-            $task       = ObjectManager::getInstance($this->taskClass);
-            $this->task = $task->load('queue_id', $this->getData('queue_id'));
-            return $this->task;
-        } catch (\Exception $e) {
-            dd($e->getMessage());
-        }
     }
 
     public static function getValues(Queue &$queue)

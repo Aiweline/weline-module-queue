@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Weline\Queue\Controller\Backend;
 
-use Aiweline\DataPublication\Model\Upload\Log;
 use PHPUnit\Util\Exception;
 use Weline\Backend\Model\BackendUserData;
 use Weline\Backend\Session\BackendSession;
@@ -94,7 +93,7 @@ class Queue extends \Weline\Framework\App\Controller\BackendController
                 $dir = str_replace('\\', '\\\\', ucfirst($dir));
                 $this->type->where('class', '%' . $dir . '%', 'like');
             }
-            $types = $this->type->where('enable', 1)->select()->fetchOrigin();
+            $types = $this->type->where('enable', 1)->select()->fetchArray();
             foreach ($types as &$type_) {
                 $type_['tip'] = $type_['tip'] . '<hr><br><span class="text-primary">' . __('执行类：') . $type_['class'] . '</span>';
             }
@@ -220,7 +219,7 @@ class Queue extends \Weline\Framework\App\Controller\BackendController
         # 删除用户的记录数据
         /** @var BackendUserData $userData */
         $userData = ObjectManager::getInstance(BackendUserData::class);
-        $userData->deleteScope($this->session->getLoginUserID(), 'queue');
+        $userData->deleteScope('queue');
         $json['code'] = 200;
         $json['msg']  = $edit ? __('队列已编辑！等待运行中...') : __('队列已成功创建！等待运行中...');
 
@@ -247,7 +246,7 @@ class Queue extends \Weline\Framework\App\Controller\BackendController
             $dir = str_replace('\\', '\\\\', $dir);
             $typeModel->where('class', '%' . ucfirst($dir) . '%', 'like');
         }
-        $types = $typeModel->select()->fetchOrigin();
+        $types = $typeModel->select()->fetchArray();
         foreach ($types as &$type_) {
             $type_['tip'] = $type_['tip'] . '<hr><br><span class="text-primary">' . __('执行类：') . $type_['class'] . '</span>';
         }

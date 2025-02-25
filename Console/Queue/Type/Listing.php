@@ -40,7 +40,7 @@ class Listing implements CommandInterface
                 $this->type->where('concat(name,module_name,class)', '%' . $arg . '%', 'like', 'or');
             }
         }
-        $queueTypes         = $this->type->select()->fetchOrigin();
+        $queueTypes         = $this->type->select()->fetchArray();
         $modulesQueueTypes = [];
         foreach ($queueTypes as $queueType) {
             $modulesQueueTypes[$queueType['module_name']][] = $queueType;
@@ -58,6 +58,6 @@ class Listing implements CommandInterface
      */
     public function tip(): string
     {
-        return '列出所有队列类型数据，示例：php bin/m queue:type:listing [可选：搜索队列名称]';
+        return '列出所有队列类型数据，示例：php bin/w queue:type:listing [可选：搜索队列名称]';
     }
 }

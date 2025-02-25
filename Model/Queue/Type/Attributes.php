@@ -153,7 +153,7 @@ class Attributes extends Model
             ->fields(self::fields_attribute_id.', '.self::fields_name)
             ->where(self::fields_type_id, $type_id)
             ->select()
-            ->fetchOrigin();
+            ->fetchArray();
         if (empty($type_attributes)) {
             return [];
         }
@@ -207,7 +207,7 @@ class Attributes extends Model
             ->where(self::fields_type_id, $type_id)
             ->where(self::fields_code, $code)
             ->find()
-            ->fetchOrigin();
+            ->fetchArray();
         if (empty($type_code_attribute)) {
             return null;
         }
